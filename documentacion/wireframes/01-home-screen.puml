@@ -1,59 +1,33 @@
-@startuml home-screen
-!theme plain
-skinparam defaultFontSize 10
-skinparam rectangleBorderColor #546E7A
-skinparam rectangleBackgroundColor #ECEFF1
-skinparam rectangleFontColor #212121
+﻿@startsalt
+title HomeScreen
 
-title mplay — Wireframe: HomeScreen
-
-rectangle "📱 HomeScreen  [360 × 800 dp]" #E0E0E0 {
-
-  rectangle "AppBar                                                              " #546E7A {
-    rectangle "<color:#FFFFFF><b>mplay</b></color>                                        <color:#FFFFFF>[🔍]  [⋮]</color>" #546E7A
-  }
-
-  rectangle "TabBar                                                              " #607D8B {
-    rectangle "<color:#FFFFFF>[ Canciones ]  [ Álbumes ]  [ Artistas ]  [ Playlists ]</color>" #607D8B
-  }
-
-  rectangle "─── Tab activo: Canciones (scroll) ──────────────────────────" #FAFAFA {
-    rectangle "TrackTile ①" #FFFFFF {
-      rectangle "🎵  <b>Título de la canción</b>                                        3:45\n      Artista · Álbum · FLAC · 320 kbps" #FFFFFF
+{
+  {* mplay | ... }
+  ==
+  {/ <b>Canciones</b> | Álbumes | Artistas | Playlists }
+  ==
+  {SI
+    {#
+      .  | <b>Título</b>       | Artista        | Dur.
+      [>]| Bohemian Rhapsody   | Queen          | 5:55
+      [>]| Hotel California    | Eagles         | 6:30
+      [>]| Stairway to Heaven  | Led Zeppelin   | 8:02
+      [>]| Comfortably Numb    | Pink Floyd     | 6:22
+      [>]| November Rain       | Guns N' Roses  | 8:57
     }
-    rectangle "TrackTile ②" #FFFFFF {
-      rectangle "🎵  <b>Otra canción</b>                                             4:12\n      Artista · Álbum · MP3 · 128 kbps" #FFFFFF
-    }
-    rectangle "TrackTile ③" #FFFFFF {
-      rectangle "🎵  <b>Canción tres</b>                                             2:58\n      Artista · Álbum · OGG · 192 kbps" #FFFFFF
-    }
-    rectangle "TrackTile ④" #FFFFFF {
-      rectangle "🎵  <b>Canción cuatro</b>                                           5:01\n      Artista · Álbum · FLAC · 320 kbps" #FFFFFF
-    }
-    rectangle "  · · ·  (continua con scroll)  · · ·  " #F5F5F5
   }
-
-  rectangle "PlayerBar ―――――――――――――――――――――――――――――――――――――――――――" #B0BEC5 {
-    rectangle "[🖼]  <b>Título</b> · Artista                              [⏮]  [▶]  [⏭]" #CFD8DC
+  ==
+  {
+    [<<] | [< ] | [  ▶  ] | [ >] | [>>]
+    --
+    <b>Bohemian Rhapsody</b> - Queen
+    [============================]
   }
-
 }
 
-note right of "📱 HomeScreen  [360 × 800 dp]"
-  <b>Interacciones</b>
-  • Tap TrackTile → PlayTrackEvent (queue = todos)
-  • Long-press TrackTile → bottom sheet:
-      Reproducir siguiente | Agregar a playlist
-      Ver álbum | Ver artista | Compartir
-  • Tab Álbumes → grid 2 columnas de AlbumCard
-  • Tab Artistas → lista de ArtistTile
-  • Tab Playlists → lista + FAB [+]
-  • Tap PlayerBar → NowPlayingScreen (slide-up)
-  • [🔍] → búsqueda inline sobre la lista
-  • [⋮] → menú: Configuración | Sobre mplay
-  <b>BLoC</b>
-  LibraryBloc → LibraryLoaded
-  PlayerBloc  → PlayerPlaying / PlayerPaused
+note right
+  BLoC: MusicLibraryBloc, PlayerBloc
+  Tap fila -> PlayerBloc.PlayTrack
+  Tap tab -> cambia vista
 end note
-
-@enduml
+@endsalt

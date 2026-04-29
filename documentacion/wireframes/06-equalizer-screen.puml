@@ -1,70 +1,104 @@
-﻿@startuml equalizer-screen
-!theme plain
-skinparam defaultFontSize 10
-skinparam rectangleBorderColor #E65100
-skinparam rectangleBackgroundColor #FFF3E0
+﻿@startsalt
+title EqualizerScreen
 
-title mplay -- Wireframe: EqualizerScreen
-
-rectangle "EqualizerScreen  [360 x 700 dp] (bottom sheet o pantalla)" #FFF8F0 {
-
-  rectangle "Handle / AppBar " #BF360C {
-    rectangle "<color:#FFFFFF>  ----   Ecualizador   ----</color>" #BF360C
+{
+  {* < | <b>Ecualizador</b> | ... }
+  ==
+  {
+    Ecualizador activo | (X) ON | () OFF
   }
-
-  rectangle "Toggle habilitado " #FFF3E0 {
-    rectangle "  Ecualizador activo           [ OFF  o---  ON ]  " #FFE0B2
+  --
+  {
+    Perfil: | ^Rock                      ^
   }
-
-  rectangle "Selector de perfil " #FFF3E0 {
-    rectangle "  Perfil:  [ Rock                         v ]  " #FFCC80
-    rectangle "  [ Guardar como... ]          [ Eliminar perfil ]  " #FFB74D
+  ==
+  {
+    {
+      <b>60Hz</b>
+      +12
+      .
+      [  ]
+      .
+      .
+      .
+      .
+      -12
+    } | {
+      <b>170Hz</b>
+      +12
+      .
+      .
+      [  ]
+      .
+      .
+      .
+      -12
+    } | {
+      <b>310Hz</b>
+      +12
+      .
+      .
+      .
+      [  ]
+      .
+      .
+      -12
+    } | {
+      <b>600Hz</b>
+      +12
+      .
+      .
+      .
+      .
+      [  ]
+      .
+      -12
+    } | {
+      <b>1kHz</b>
+      +12
+      .
+      .
+      .
+      .
+      .
+      [  ]
+      -12
+    } | {
+      <b>3kHz</b>
+      +12
+      .
+      [  ]
+      .
+      .
+      .
+      .
+      -12
+    } | {
+      <b>dB</b>
+      +12
+      +8
+      +4
+      0
+      -4
+      -8
+      -12
+    }
   }
-
-  rectangle "Bandas de frecuencia (sliders verticales) " #FFF8F0 {
-    rectangle "Escala dB " #FFF3E0 {
-      rectangle "+15dB\n\n\n  0dB\n\n\n-15dB" #FFF3E0
-    }
-    rectangle "Banda 60Hz " #FFE0B2 {
-      rectangle "  |\n  |\n  o\n  |\n  |\n60Hz" #FFE0B2
-    }
-    rectangle "Banda 170Hz " #FFE0B2 {
-      rectangle "  |\n  o\n  |\n  |\n  |\n170Hz" #FFE0B2
-    }
-    rectangle "Banda 310Hz " #FFE0B2 {
-      rectangle "  |\n  |\n  |\n  o\n  |\n310Hz" #FFE0B2
-    }
-    rectangle "Banda 600Hz " #FFE0B2 {
-      rectangle "  |\n  |\n  o\n  |\n  |\n600Hz" #FFE0B2
-    }
-    rectangle "Banda 1kHz " #FFE0B2 {
-      rectangle "  o\n  |\n  |\n  |\n  |\n1kHz" #FFE0B2
-    }
-    rectangle "Banda 3kHz " #FFE0B2 {
-      rectangle "  |\n  |\n  o\n  |\n  |\n3kHz" #FFE0B2
-    }
-    rectangle "... " #FFF3E0
+  ==
+  [ ↺  Restablecer ]
+  ==
+  {
+    [<<] | [< ] | [  ▶  ] | [ >] | [>>]
+    --
+    <b>Bohemian Rhapsody</b> - Queen
   }
-
-  rectangle "Boton reset " #FFF3E0 {
-    rectangle "  [ Restablecer bandas ]  " #FFCC80
-  }
-
 }
 
-note right of "EqualizerScreen  [360 x 700 dp] (bottom sheet o pantalla)"
-  Interacciones
-  - Toggle ON/OFF -> EqualizerRepository.setEnabled()
-    (sliders deshabilitados si OFF)
-  - Selector perfil -> ApplyEqualizerProfileUseCase
-  - Drag slider banda -> SaveEqualizerProfileUseCase
-    (actualiza perfil personalizado activo en tiempo real)
-  - [Guardar como...] -> dialog nombre -> nuevo perfil
-  - [Eliminar] -> solo en perfiles del usuario
-    (presets de fabrica no eliminables)
-  - [Restablecer] -> vuelve bandas a 0 dB
-  - Perfil activo se persiste en AppSettings.defaultEqProfileId
-  BLoC: EqualizerBloc -> EqualizerLoaded
+note right
+  BLoC: EqualizerBloc, PlayerBloc
+  Toggle ON/OFF -> EqualizerBloc.Toggle
+  Drag banda -> EqualizerBloc.SetBand
+  Dropdown -> EqualizerBloc.LoadPreset
+  Restablecer -> EqualizerBloc.Reset
 end note
-
-@enduml
+@endsalt

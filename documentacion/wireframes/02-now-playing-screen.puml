@@ -1,57 +1,42 @@
-﻿@startuml now-playing-screen
-!theme plain
-skinparam defaultFontSize 10
-skinparam rectangleBorderColor #37474F
-skinparam rectangleBackgroundColor #263238
-skinparam rectangleFontColor #ECEFF1
+﻿@startsalt
+title NowPlayingScreen
 
-title mplay -- Wireframe: NowPlayingScreen
-
-rectangle "NowPlayingScreen  [360 x 800 dp]" #1C313A {
-
-  rectangle "AppBar                                                              " #37474F {
-    rectangle "<color:#ECEFF1>[v Bajar]            En reproduccion            [...]</color>" #37474F
+{
+  {* < | <b>Now Playing</b> | ... }
+  ==
+  {
+    .
+    .
+    [    Portada del Álbum (300x300)    ]
+    .
+    .
+    <b>Bohemian Rhapsody</b>
+    Queen  •  FLAC  •  320 kbps
+    .
+    [  ♥  ]  |  [  ⋮  ]
+    --
+    0:45 [===========              ] 5:55
+    --
+    [  ⇄  ] | [  <<  ] | [  ▶  ] | [  >>  ] | [  ↺  ]
+    --
+    Vol [==========               ] 100%
+    --
+    {/ <b>Letras</b> | Cola }
+    --
+    {SI
+      Is this the real life?
+      Is this just fantasy?
+      <b>Caught in a landslide,</b>
+      <b>No escape from reality.</b>
+      Open your eyes,
+    }
   }
-
-  rectangle "Portada del album " #2D4A52 {
-    rectangle "<color:#263238>\n\n\n         [ Caratula del album (~220x220 dp) ]         \n\n\n</color>" #263238
-  }
-
-  rectangle "Metadata " #2D4A52 {
-    rectangle "<color:#FFFFFF><b>Titulo de la cancion</b></color>                                  <color:#B0BEC5>[fav]</color>" #2D4A52
-    rectangle "<color:#B0BEC5>Artista - Album</color>" #2D4A52
-    rectangle "<color:#78909C>FLAC  -  320 kbps  -  44100 Hz  -  5.2 MB</color>" #263238
-  }
-
-  rectangle "Progreso " #2D4A52 {
-    rectangle "<color:#78909C>1:23</color>  <color:#4FC3F7>---------------------o-----------</color>  <color:#78909C>3:45</color>" #2D4A52
-  }
-
-  rectangle "Controles principales " #2D4A52 {
-    rectangle "<color:#ECEFF1>[Shuffle]   [|< Anterior]   [> Play]   [>| Siguiente]   [Rep]</color>" #2D4A52
-  }
-
-  rectangle "Controles secundarios " #263238 {
-    rectangle "<color:#90A4AE>[Ecualizador]         [Playlist]         [Compartir]</color>" #263238
-  }
-
-  rectangle "Letras (scroll / sync karaoke) " #1C313A {
-    rectangle "<color:#546E7A>Linea anterior...</color>\n<color:#FFFFFF><b>> Linea actual resaltada</b></color>\n<color:#546E7A>Linea siguiente...</color>" #1C313A
-  }
-
 }
 
-note right of "NowPlayingScreen  [360 x 800 dp]"
-  Gestos
-  - Swipe down -> cierra, vuelve a HomeScreen
-  - Swipe izq/der sobre portada -> cancion ant/sig
-  - Drag barra de progreso -> seek
-  - Tap [Ecualizador] -> EqualizerScreen (bottom sheet)
-  BLoC
-  PlayerBloc -> PlayerPlaying (track, position)
-  LyricsBloc -> LyricsLoaded (lyrics, currentLine)
-                LyricsNotFound
-  Tema oscuro respeta ThemeMode del usuario
+note right
+  BLoC: PlayerBloc, LyricsBloc
+  Tap ▶/⏸ -> PlayerBloc.TogglePlay
+  Drag slider -> PlayerBloc.Seek
+  Tap ♥ -> LibraryBloc.ToggleFavorite
 end note
-
-@enduml
+@endsalt
