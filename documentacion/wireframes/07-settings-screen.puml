@@ -1,0 +1,73 @@
+﻿@startuml settings-screen
+!theme plain
+skinparam defaultFontSize 10
+skinparam rectangleBorderColor #37474F
+skinparam rectangleBackgroundColor #ECEFF1
+
+title mplay -- Wireframe: SettingsScreen
+
+rectangle "SettingsScreen  [360 x 800 dp]" #F5F5F5 {
+
+  rectangle "AppBar " #37474F {
+    rectangle "<color:#FFFFFF>[<-]   Configuracion</color>" #37474F
+  }
+
+  rectangle "Seccion: Apariencia " #E3F2FD {
+    rectangle "  --- Apariencia --- " #90CAF9
+    rectangle "ListTile Tema " #FFFFFF {
+      rectangle "  Tema de la interfaz\n  [ (o) Sistema   ( ) Claro   ( ) Oscuro ]" #FFFFFF
+    }
+  }
+
+  rectangle "Seccion: Reproduccion " #E8F5E9 {
+    rectangle "  --- Reproduccion --- " #A5D6A7
+    rectangle "ListTile Skip silence " #FFFFFF {
+      rectangle "  Omitir silencios                    [ OFF  o--  ON ]" #FFFFFF
+    }
+    rectangle "ListTile Crossfade " #FFFFFF {
+      rectangle "  Crossfade entre canciones\n  [ 0s  ---o-------------  10s ]" #FFFFFF
+    }
+    rectangle "ListTile EQ default " #FFFFFF {
+      rectangle "  Perfil EQ al iniciar\n  [ Rock                          v ]" #FFFFFF
+    }
+  }
+
+  rectangle "Seccion: Idioma " #FFF8E1 {
+    rectangle "  --- Idioma --- " #FFF176
+    rectangle "ListTile Idioma " #FFFFFF {
+      rectangle "  Idioma de la interfaz\n  [ Espanol (es)                  v ]" #FFFFFF
+    }
+  }
+
+  rectangle "Seccion: Datos " #F3E5F5 {
+    rectangle "  --- Datos --- " #CE93D8
+    rectangle "ListTile Backup " #FFFFFF {
+      rectangle "  Backup y restauracion                         [->]" #FFFFFF
+    }
+  }
+
+  rectangle "Seccion: Acerca de " #FAFAFA {
+    rectangle "  --- Acerca de --- " #B0BEC5
+    rectangle "ListTile version " #FFFFFF {
+      rectangle "  Version de la app                        1.0.0" #FFFFFF
+    }
+  }
+
+  rectangle "PlayerBar " #B0BEC5 {
+    rectangle "[img]  <b>Titulo</b> - Artista                               [|<]  [>]  [>|]" #CFD8DC
+  }
+
+}
+
+note right of "SettingsScreen  [360 x 800 dp]"
+  Interacciones
+  - Tema: radio buttons -> UpdateSettingsEvent
+    -> MaterialApp.themeMode cambia en caliente
+  - Crossfade: slider 0-10s
+  - EQ por defecto: dropdown de perfiles guardados
+  - Backup [->] -> navega a BackupRestoreScreen
+  BLoC: SettingsBloc -> SettingsLoaded(settings)
+  Cada cambio -> SaveSettingsUseCase
+end note
+
+@enduml

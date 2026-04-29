@@ -1,0 +1,70 @@
+﻿@startuml equalizer-screen
+!theme plain
+skinparam defaultFontSize 10
+skinparam rectangleBorderColor #E65100
+skinparam rectangleBackgroundColor #FFF3E0
+
+title mplay -- Wireframe: EqualizerScreen
+
+rectangle "EqualizerScreen  [360 x 700 dp] (bottom sheet o pantalla)" #FFF8F0 {
+
+  rectangle "Handle / AppBar " #BF360C {
+    rectangle "<color:#FFFFFF>  ----   Ecualizador   ----</color>" #BF360C
+  }
+
+  rectangle "Toggle habilitado " #FFF3E0 {
+    rectangle "  Ecualizador activo           [ OFF  o---  ON ]  " #FFE0B2
+  }
+
+  rectangle "Selector de perfil " #FFF3E0 {
+    rectangle "  Perfil:  [ Rock                         v ]  " #FFCC80
+    rectangle "  [ Guardar como... ]          [ Eliminar perfil ]  " #FFB74D
+  }
+
+  rectangle "Bandas de frecuencia (sliders verticales) " #FFF8F0 {
+    rectangle "Escala dB " #FFF3E0 {
+      rectangle "+15dB\n\n\n  0dB\n\n\n-15dB" #FFF3E0
+    }
+    rectangle "Banda 60Hz " #FFE0B2 {
+      rectangle "  |\n  |\n  o\n  |\n  |\n60Hz" #FFE0B2
+    }
+    rectangle "Banda 170Hz " #FFE0B2 {
+      rectangle "  |\n  o\n  |\n  |\n  |\n170Hz" #FFE0B2
+    }
+    rectangle "Banda 310Hz " #FFE0B2 {
+      rectangle "  |\n  |\n  |\n  o\n  |\n310Hz" #FFE0B2
+    }
+    rectangle "Banda 600Hz " #FFE0B2 {
+      rectangle "  |\n  |\n  o\n  |\n  |\n600Hz" #FFE0B2
+    }
+    rectangle "Banda 1kHz " #FFE0B2 {
+      rectangle "  o\n  |\n  |\n  |\n  |\n1kHz" #FFE0B2
+    }
+    rectangle "Banda 3kHz " #FFE0B2 {
+      rectangle "  |\n  |\n  o\n  |\n  |\n3kHz" #FFE0B2
+    }
+    rectangle "... " #FFF3E0
+  }
+
+  rectangle "Boton reset " #FFF3E0 {
+    rectangle "  [ Restablecer bandas ]  " #FFCC80
+  }
+
+}
+
+note right of "EqualizerScreen  [360 x 700 dp] (bottom sheet o pantalla)"
+  Interacciones
+  - Toggle ON/OFF -> EqualizerRepository.setEnabled()
+    (sliders deshabilitados si OFF)
+  - Selector perfil -> ApplyEqualizerProfileUseCase
+  - Drag slider banda -> SaveEqualizerProfileUseCase
+    (actualiza perfil personalizado activo en tiempo real)
+  - [Guardar como...] -> dialog nombre -> nuevo perfil
+  - [Eliminar] -> solo en perfiles del usuario
+    (presets de fabrica no eliminables)
+  - [Restablecer] -> vuelve bandas a 0 dB
+  - Perfil activo se persiste en AppSettings.defaultEqProfileId
+  BLoC: EqualizerBloc -> EqualizerLoaded
+end note
+
+@enduml

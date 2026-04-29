@@ -1,0 +1,62 @@
+﻿@startuml backup-restore-screen
+!theme plain
+skinparam defaultFontSize 10
+skinparam rectangleBorderColor #1A237E
+skinparam rectangleBackgroundColor #E8EAF6
+
+title mplay -- Wireframe: BackupRestoreScreen
+
+rectangle "BackupRestoreScreen  [360 x 800 dp]" #F3F4FF {
+
+  rectangle "AppBar " #1A237E {
+    rectangle "<color:#FFFFFF>[<-]   Backup y Restauracion</color>" #1A237E
+  }
+
+  rectangle "Seccion: Exportar backup " #E8F5E9 {
+    rectangle "  --- Exportar --- " #43A047
+    rectangle "Seleccion de secciones " #FFFFFF {
+      rectangle "  [v] Playlists\n  [v] Perfiles de Ecualizador\n  [v] Cache de Letras\n  [v] Configuracion de la app" #FFFFFF
+    }
+    rectangle "  [ Exportar backup  (.mplaybackup) ]  " #2E7D32
+  }
+
+  rectangle "Seccion: Importar backup " #FFF8E1 {
+    rectangle "  --- Importar --- " #F9A825
+    rectangle "  [ Seleccionar archivo .mplaybackup ]  " #F57F17
+    rectangle "Advertencia " #FFCCBC {
+      rectangle "  /!\\  La importacion reemplazara los datos\n        actuales de las secciones seleccionadas." #FFCCBC
+    }
+  }
+
+  rectangle "Seccion: Historial " #F3E5F5 {
+    rectangle "  --- Ultimo backup conocido --- " #7B1FA2
+    rectangle "BackupHistoryTile " #FFFFFF {
+      rectangle "  [doc] mplay_backup_20260429.mplaybackup\n         Creado: 29/04/2026 10:35\n         Secciones: Playlists - EQ - Config" #FFFFFF
+    }
+  }
+
+  rectangle "Estado BackupBloc (overlay) " #E8EAF6 {
+    rectangle "  BackupInProgress -> spinner + mensaje\n  BackupSuccess    -> SnackBar OK\n  BackupError      -> SnackBar error" #C5CAE9
+  }
+
+  rectangle "PlayerBar " #B0BEC5 {
+    rectangle "[img]  <b>Titulo</b> - Artista                               [|<]  [>]  [>|]" #CFD8DC
+  }
+
+}
+
+note right of "BackupRestoreScreen  [360 x 800 dp]"
+  Interacciones
+  - Checkboxes -> seleccionar BackupSection
+  - [Exportar] -> ExportBackupUseCase
+    -> genera JSON -> share_plus abre dialogo del sistema
+  - [Seleccionar archivo] -> file_picker
+    -> ImportBackupUseCase
+    -> dialog confirmacion con resumen
+  /!\\ Flujo completo pendiente de definicion:
+    automatico vs manual, destino (local/nube/Drive)
+  BLoC: BackupBloc -> BackupIdle / BackupInProgress
+                      BackupSuccess / BackupError
+end note
+
+@enduml

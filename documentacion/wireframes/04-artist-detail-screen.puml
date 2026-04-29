@@ -1,0 +1,60 @@
+﻿@startuml artist-detail-screen
+!theme plain
+skinparam defaultFontSize 10
+skinparam rectangleBorderColor #1A237E
+skinparam rectangleBackgroundColor #E8EAF6
+
+title mplay -- Wireframe: ArtistDetailScreen
+
+rectangle "ArtistDetailScreen  [360 x 800 dp]" #F3F4FF {
+
+  rectangle "SliverAppBar " #283593 {
+    rectangle "<color:#FFFFFF>[<-]   Nombre del Artista                        [...]</color>" #283593
+    rectangle "Header expandido                                                        " #303F9F {
+      rectangle "<color:#FFFFFF>  [ Avatar / imagen artista ]  Nombre Artista (bold 22sp)\n  N albums  -  M canciones</color>" #303F9F
+      rectangle "<color:#FFFFFF>[> Reproducir todo]                [~Aleatorio]</color>" #3949AB
+    }
+  }
+
+  rectangle "Seccion: Albums (scroll horizontal) " #EDE7F6 {
+    rectangle "Titulo: 'Albums'" #7E57C2
+    rectangle "Grid horizontal " #EDE7F6 {
+      rectangle "AlbumCard A " #D1C4E9 {
+        rectangle "[ Portada ]\nNombre Album A\n2023 - 12 canciones" #D1C4E9
+      }
+      rectangle "AlbumCard B " #D1C4E9 {
+        rectangle "[ Portada ]\nNombre Album B\n2021 - 8 canciones" #D1C4E9
+      }
+      rectangle "..." #EDE7F6
+    }
+  }
+
+  rectangle "Seccion: Canciones (scroll) " #FAFAFA {
+    rectangle "Titulo: 'Canciones'" #5C6BC0
+    rectangle "TrackTile i" #FFFFFF {
+      rectangle "[mus]  <b>Cancion uno</b>                                  3:45\n        Album A - FLAC - 320 kbps" #FFFFFF
+    }
+    rectangle "TrackTile ii" #FFFFFF {
+      rectangle "[mus]  <b>Cancion dos</b>                                  4:12\n        Album B - MP3 - 192 kbps" #FFFFFF
+    }
+    rectangle "... (continua con scroll) ..." #F5F5F5
+  }
+
+  rectangle "PlayerBar " #B0BEC5 {
+    rectangle "[img]  <b>Titulo</b> - Artista                            [|<]  [>]  [>|]" #CFD8DC
+  }
+
+}
+
+note right of "ArtistDetailScreen  [360 x 800 dp]"
+  Interacciones
+  - Tap AlbumCard -> AlbumDetailScreen
+  - Tap TrackTile -> PlayTrackEvent
+    queue = canciones del artista
+  - Long-press -> bottom sheet estandar
+  BLoC
+  LibraryBloc -> LibraryLoaded
+    (albums y tracks filtrados por artistId)
+end note
+
+@enduml

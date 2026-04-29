@@ -1,0 +1,50 @@
+﻿@startuml album-detail-screen
+!theme plain
+skinparam defaultFontSize 10
+skinparam rectangleBorderColor #1B5E20
+skinparam rectangleBackgroundColor #E8F5E9
+
+title mplay -- Wireframe: AlbumDetailScreen
+
+rectangle "AlbumDetailScreen  [360 x 800 dp]" #F1F8E9 {
+
+  rectangle "SliverAppBar (colapsa al hacer scroll) " #2E7D32 {
+    rectangle "<color:#FFFFFF>[<-]   Nombre del Album                           [...]</color>" #2E7D32
+    rectangle "Header expandido " #388E3C {
+      rectangle "<color:#FFFFFF>  [ Portada grande ~180x180 dp ]  Nombre Album (bold)\n  Artista - Anio - N canciones</color>" #388E3C
+      rectangle "<color:#FFFFFF>[> Reproducir todo]                [~ Aleatorio]</color>" #43A047
+    }
+  }
+
+  rectangle "Lista de canciones (scroll) " #FAFAFA {
+    rectangle "TrackTile 1" #FFFFFF {
+      rectangle "#1  <b>Titulo cancion uno</b>                                  3:20\n     Artista - FLAC - 320 kbps" #FFFFFF
+    }
+    rectangle "TrackTile 2" #FFFFFF {
+      rectangle "#2  <b>Titulo cancion dos</b>                                  4:05\n     Artista - FLAC - 320 kbps" #FFFFFF
+    }
+    rectangle "TrackTile 3" #FFFFFF {
+      rectangle "#3  <b>Titulo cancion tres</b>                                 2:48\n     Artista - MP3 - 128 kbps" #FFFFFF
+    }
+    rectangle "  ... (continua con scroll) ..." #F5F5F5
+  }
+
+  rectangle "PlayerBar " #B0BEC5 {
+    rectangle "[img]  <b>Titulo</b> - Artista                               [|<]  [>]  [>|]" #CFD8DC
+  }
+
+}
+
+note right of "AlbumDetailScreen  [360 x 800 dp]"
+  Interacciones
+  - N de pista a la izquierda de cada TrackTile
+  - Tap TrackTile -> PlayTrackEvent
+    queue = todas las canciones del album
+  - Long-press -> bottom sheet estandar
+  - Tap nombre Artista -> ArtistDetailScreen
+  BLoC
+  LibraryBloc -> LibraryLoaded
+    (tracks filtrados por albumId)
+end note
+
+@enduml

@@ -1,0 +1,81 @@
+﻿@startuml playlists-screens
+!theme plain
+skinparam defaultFontSize 10
+skinparam rectangleBorderColor #4A148C
+skinparam rectangleBackgroundColor #F3E5F5
+
+title mplay -- Wireframe: PlaylistsScreen + PlaylistDetailScreen
+
+rectangle "PlaylistsScreen  [360 x 800 dp]" #FAF0FF {
+
+  rectangle "AppBar " #6A1B9A {
+    rectangle "<color:#FFFFFF>[<-]   Playlists</color>" #6A1B9A
+  }
+
+  rectangle "Lista de playlists (scroll) " #FAFAFA {
+    rectangle "PlaylistTile A" #FFFFFF {
+      rectangle "[img]  <b>Mi playlist favorita</b>                       [>]\n        15 canciones - Creada 20/04/2026" #FFFFFF
+    }
+    rectangle "PlaylistTile B" #FFFFFF {
+      rectangle "[img]  <b>Rock clasico</b>                               [>]\n        8 canciones - Creada 15/03/2026" #FFFFFF
+    }
+    rectangle "PlaylistTile C" #FFFFFF {
+      rectangle "[img]  <b>Para el gym</b>                                [>]\n        22 canciones - Creada 01/01/2026" #FFFFFF
+    }
+    rectangle "... (continua con scroll) ..." #F5F5F5
+  }
+
+  rectangle "FAB: [+ Nueva playlist] (esquina inf. derecha)" #AB47BC
+
+  rectangle "PlayerBar " #B0BEC5 {
+    rectangle "[img]  <b>Titulo</b> - Artista                               [|<]  [>]  [>|]" #CFD8DC
+  }
+
+}
+
+rectangle "PlaylistDetailScreen  [360 x 800 dp]" #FAF0FF {
+
+  rectangle "AppBar " #6A1B9A {
+    rectangle "<color:#FFFFFF>[<-]  Nombre playlist  [lapiz Renombrar]  [papelera]</color>" #6A1B9A
+  }
+
+  rectangle "Header de la playlist " #7B1FA2 {
+    rectangle "<color:#FFFFFF>  [ Collage portadas o placeholder ]\n  Nombre playlist (bold 20sp)\n  N canciones - Duracion total</color>" #7B1FA2
+    rectangle "<color:#FFFFFF>[> Reproducir todo]          [~ Aleatorio]</color>" #8E24AA
+  }
+
+  rectangle "Lista reordenable (scroll) " #FAFAFA {
+    rectangle "TrackTile + handle I" #FFFFFF {
+      rectangle "=  [mus]  <b>Cancion uno</b> - Artista             3:20\n           Album - FLAC - 320 kbps" #FFFFFF
+    }
+    rectangle "TrackTile + handle II" #FFFFFF {
+      rectangle "=  [mus]  <b>Cancion dos</b> - Artista             4:05\n           Album - MP3 - 128 kbps" #FFFFFF
+    }
+    rectangle "... (continua con scroll) ..." #F5F5F5
+  }
+
+  rectangle "PlayerBar " #B0BEC5 {
+    rectangle "[img]  <b>Titulo</b> - Artista                               [|<]  [>]  [>|]" #CFD8DC
+  }
+
+}
+
+note right of "PlaylistsScreen  [360 x 800 dp]"
+  Interacciones PlaylistsScreen
+  - Tap PlaylistTile -> PlaylistDetailScreen
+  - Long-press PlaylistTile -> bottom sheet:
+    Reproducir | Renombrar | Eliminar
+  - FAB [+] -> dialog: ingresa nombre -> CreatePlaylistUseCase
+  BLoC: PlaylistBloc -> PlaylistLoaded
+end note
+
+note right of "PlaylistDetailScreen  [360 x 800 dp]"
+  Interacciones PlaylistDetailScreen
+  - = (drag handle) -> reordenar pistas
+  - Swipe izquierda TrackTile -> eliminar
+  - Long-press -> bottom sheet estandar
+  - [papelera] AppBar -> confirmar y eliminar playlist
+  BLoC: PlaylistBloc + LibraryBloc
+end note
+
+@enduml
