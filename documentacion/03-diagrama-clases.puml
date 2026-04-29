@@ -1,0 +1,662 @@
+@startuml diagrama-clases
+!theme plain
+skinparam defaultFontSize 11
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title mplay — Diagrama de Clases v4
+
+' ─────────────────────────────────────────
+' ENTITIES (Domain)
+' ─────────────────────────────────────────
+package "domain/entities" #E8F5E9 {
+
+  class Track {
+    + id: int
+    + title: String
+    + artist: String
+    + album: String
+    + albumId: int
+    + duration: Duration
+    + filePath: String
+    + albumArtUri: Uri?
+    + format: AudioFormat
+  }
+
+  class Album {
+    + id: int
+    + name: String
+    + artist: String
+    + trackCount: int
+    + albumArtUri: Uri?
+    + tracks: List<Track>
+  }
+
+  class Artist {
+    + id: int
+    + name: String
+    + albumCount: int
+    + trackCount: int
+  }
+
+  class Playlist {
+    + id: int
+    + name: String
+    + createdAt: DateTime
+    + tracks: List<Track>
+    + addTrack(track: Track): void
+    + removeTrack(id: int): void
+    + reorder(fromIndex: int, toIndex: int): void
+  }
+
+  class EqualizerBand {
+    + index: int
+    + centerFrequency: int
+    + gain: double
+    + minGain: double
+    + maxGain: double
+  }
+
+  class EqualizerProfile {
+    + id: int
+    + name: String
+    + isPreset: bool
+    + bands: List<EqualizerBand>
+  }
+
+  class LyricLine {
+    + timestamp: Duration?
+    + text: String
+  }
+
+  class Lyrics {
+    + trackId: int
+    + source: LyricsSource
+    + lines: List<LyricLine>
+    + lineAt(position: Duration): LyricLine?
+  }
+
+  enum AudioFormat {
+    mp3
+    flac
+    aac
+    ogg
+    wav
+    m4a
+    opus
+    wma
+    unknown
+  }
+
+  enum LyricsSource {
+    lrcFile
+    txtFile
+    cachedDb
+    notFound
+  }
+
+  class LyricsCacheEntry {
+    + id: int
+    + trackPath: String
+    + trackTitle: String
+    + cachedAt: DateTime
+    + source: LyricsSource
+    + lines: List<LyricLine>
+  }
+
+  ' ───────────────────────────────────────────
+  ' BACKUP
+  ' ───────────────────────────────────────────
+  class BackupMetadata {
+    + version: String
+    + createdAt: DateTime
+    + deviceName: String
+    + includedSections: List<BackupSection>
+  }
+
+  class AppBackup {
+    + metadata: BackupMetadata
+    + playlists: List<Playlist>?
+    + equalizerProfiles: List<EqualizerProfile>?
+    + lyricsCache: List<LyricsCacheEntry>?
+    + appSettings: AppSettings?
+    + toJson(): Map<String, dynamic>
+    + fromJson(json: Map): AppBackup
+  }
+
+  enum BackupSection {
+    playlists
+    equalizerProfiles
+    lyricsCache
+    appSettings
+  }
+
+  class AppSettings {
+    + themeMode: ThemeMode
+    + defaultEqProfileId: int?
+    + equalizerEnabled: bool
+    + language: String
+    + skipSilence: bool
+    + crossfadeDuration: Duration
+    + copyWith(...): AppSettings
+  }
+
+  enum ThemeMode {
+    system
+    light
+    dark
+  }
+
+  AppSettings --> ThemeMode
+
+  AppBackup --> BackupMetadata
+  AppBackup o-- "0..*" Playlist
+  AppBackup o-- "0..*" EqualizerProfile
+  AppBackup o-- "0..*" LyricsCacheEntry
+  AppBackup --> AppSettings
+  LyricsCacheEntry o-- "0..*" LyricLine
+  LyricsCacheEntry --> LyricsSource
+
+  Album "1" o-- "0..*" Track
+  Artist "1" o-- "0..*" Album
+  Playlist "1" o-- "0..*" Track
+  EqualizerProfile "1" o-- "1..*" EqualizerBand
+  Lyrics "1" o-- "0..*" LyricLine
+  Track --> AudioFormat
+
+' ─────────────────────────────────────────
+' REPOSITORIES (Domain — interfaces)
+' ─────────────────────────────────────────
+package "domain/repositories" #E8F5E9 {
+
+  interface MediaRepository {
+    + getTracks(): Future<List<Track>>
+    + getAlbums(): Future<List<Album>>
+    + getArtists(): Future<List<Artist>>
+    + getTracksByAlbum(albumId: int): Future<List<Track>>
+    + getTracksByArtist(artistId: int): Future<List<Track>>
+    + searchTracks(query: String): Future<List<Track>>
+  }
+
+  interface AudioRepository {
+    + play(track: Track): Future<void>
+    + pause(): Future<void>
+    + resume(): Future<void>
+    + stop(): Future<void>
+    + seekTo(position: Duration): Future<void>
+    + skipNext(): Future<void>
+    + skipPrevious(): Future<void>
+    + setQueue(tracks: List<Track>): Future<void>
+    + setShuffleMode(enabled: bool): Future<void>
+    + setRepeatMode(mode: RepeatMode): Future<void>
+    + playerStateStream: Stream<PlayerState>
+    + positionStream: Stream<Duration>
+  }
+
+  interface PlaylistRepository {
+    + getPlaylists(): Future<List<Playlist>>
+    + createPlaylist(name: String): Future<Playlist>
+    + deletePlaylist(id: int): Future<void>
+    + addTrack(playlistId: int, track: Track): Future<void>
+    + removeTrack(playlistId: int, trackId: int): Future<void>
+    + reorderTrack(playlistId: int, from: int, to: int): Future<void>
+  }
+
+  interface EqualizerRepository {
+    + getProfiles(): Future<List<EqualizerProfile>>
+    + getActiveProfile(): Future<EqualizerProfile?>
+    + saveProfile(profile: EqualizerProfile): Future<void>
+    + deleteProfile(id: int): Future<void>
+    + applyProfile(profile: EqualizerProfile): Future<void>
+    + setEnabled(enabled: bool): Future<void>
+    + isEnabled(): Future<bool>
+  }
+
+  interface LyricsRepository {
+    + getLyrics(track: Track): Future<Lyrics?>
+    + cacheLyrics(entry: LyricsCacheEntry): Future<void>
+    + getCachedLyrics(trackPath: String): Future<LyricsCacheEntry?>
+    + clearCache(): Future<void>
+  }
+
+  interface BackupRepository {
+    ' ⚠️ Procedimiento de exportación/importación en definición
+    + exportBackup(sections: List<BackupSection>): Future<File>
+    + importBackup(file: File): Future<AppBackup>
+    + getBackupHistory(): Future<List<BackupMetadata>>
+  }
+
+  interface SettingsRepository {
+    + getSettings(): Future<AppSettings>
+    + saveSettings(settings: AppSettings): Future<void>
+    + resetToDefaults(): Future<void>
+  }
+
+  enum RepeatMode {
+    none
+    one
+    all
+  }
+
+' ─────────────────────────────────────────
+' USE CASES (Domain)
+' ─────────────────────────────────────────
+package "domain/use_cases" #E8F5E9 {
+
+  class GetAllTracksUseCase {
+    - repository: MediaRepository
+    + call(): Future<List<Track>>
+  }
+
+  class GetAllAlbumsUseCase {
+    - repository: MediaRepository
+    + call(): Future<List<Album>>
+  }
+
+  class GetAllArtistsUseCase {
+    - repository: MediaRepository
+    + call(): Future<List<Artist>>
+  }
+
+  class PlayTrackUseCase {
+    - repository: AudioRepository
+    + call(track: Track, queue: List<Track>): Future<void>
+  }
+
+  class ControlPlaybackUseCase {
+    - repository: AudioRepository
+    + pause(): Future<void>
+    + resume(): Future<void>
+    + skipNext(): Future<void>
+    + skipPrevious(): Future<void>
+    + seekTo(position: Duration): Future<void>
+    + setShuffleMode(enabled: bool): Future<void>
+    + setRepeatMode(mode: RepeatMode): Future<void>
+  }
+
+  class GetPlaylistsUseCase {
+    - repository: PlaylistRepository
+    + call(): Future<List<Playlist>>
+  }
+
+  class CreatePlaylistUseCase {
+    - repository: PlaylistRepository
+    + call(name: String): Future<Playlist>
+  }
+
+  class DeletePlaylistUseCase {
+    - repository: PlaylistRepository
+    + call(id: int): Future<void>
+  }
+
+  class AddTrackToPlaylistUseCase {
+    - repository: PlaylistRepository
+    + call(playlistId: int, track: Track): Future<void>
+  }
+
+  class RemoveTrackFromPlaylistUseCase {
+    - repository: PlaylistRepository
+    + call(playlistId: int, trackId: int): Future<void>
+  }
+
+  class GetEqualizerProfilesUseCase {
+    - repository: EqualizerRepository
+    + call(): Future<List<EqualizerProfile>>
+  }
+
+  class SaveEqualizerProfileUseCase {
+    - repository: EqualizerRepository
+    + call(profile: EqualizerProfile): Future<void>
+  }
+
+  class ApplyEqualizerProfileUseCase {
+    - repository: EqualizerRepository
+    + call(profile: EqualizerProfile): Future<void>
+  }
+
+  class DeleteEqualizerProfileUseCase {
+    - repository: EqualizerRepository
+    + call(id: int): Future<void>
+  }
+
+  class GetLyricsUseCase {
+    - repository: LyricsRepository
+    + call(track: Track): Future<Lyrics?>
+  }
+
+  class CacheLyricsUseCase {
+    - repository: LyricsRepository
+    + call(entry: LyricsCacheEntry): Future<void>
+  }
+
+  ' ⚠️ Use cases de backup: pendiente de definición del flujo completo
+  class ExportBackupUseCase {
+    - repository: BackupRepository
+    + call(sections: List<BackupSection>): Future<File>
+  }
+
+  class ImportBackupUseCase {
+    - repository: BackupRepository
+    + call(file: File): Future<AppBackup>
+  }
+
+  class GetSettingsUseCase {
+    - repository: SettingsRepository
+    + call(): Future<AppSettings>
+  }
+
+  class SaveSettingsUseCase {
+    - repository: SettingsRepository
+    + call(settings: AppSettings): Future<void>
+  }
+
+  GetAllTracksUseCase --> MediaRepository
+  GetAllAlbumsUseCase --> MediaRepository
+  GetAllArtistsUseCase --> MediaRepository
+  PlayTrackUseCase --> AudioRepository
+  ControlPlaybackUseCase --> AudioRepository
+  GetPlaylistsUseCase --> PlaylistRepository
+  CreatePlaylistUseCase --> PlaylistRepository
+  DeletePlaylistUseCase --> PlaylistRepository
+  AddTrackToPlaylistUseCase --> PlaylistRepository
+  RemoveTrackFromPlaylistUseCase --> PlaylistRepository
+  GetEqualizerProfilesUseCase --> EqualizerRepository
+  SaveEqualizerProfileUseCase --> EqualizerRepository
+  ApplyEqualizerProfileUseCase --> EqualizerRepository
+  DeleteEqualizerProfileUseCase --> EqualizerRepository
+  GetLyricsUseCase --> LyricsRepository
+  CacheLyricsUseCase --> LyricsRepository
+  ExportBackupUseCase --> BackupRepository
+  ImportBackupUseCase --> BackupRepository
+  GetSettingsUseCase --> SettingsRepository
+  SaveSettingsUseCase --> SettingsRepository
+}
+
+' ─────────────────────────────────────────
+' DATA LAYER
+' ─────────────────────────────────────────
+package "data" #FFF8E1 {
+
+  class MediaRepositoryImpl {
+    - dataSource: LocalMediaDataSource
+  }
+
+  class AudioRepositoryImpl {
+    - dataSource: AudioPlayerDataSource
+  }
+
+  class PlaylistRepositoryImpl {
+    - dataSource: PlaylistLocalDataSource
+  }
+
+  class EqualizerRepositoryImpl {
+    - dataSource: EqualizerDataSource
+  }
+
+  class LyricsRepositoryImpl {
+    - fileDataSource: LyricsFileDataSource
+    - cacheDataSource: LyricsCacheDataSource
+  }
+
+  class BackupRepositoryImpl {
+    - backupDataSource: BackupDataSource
+  }
+
+  class SettingsRepositoryImpl {
+    - dataSource: SettingsDataSource
+  }
+
+  class LyricsFileDataSource {
+    + findLyricsFile(audioPath: String): Future<File?>
+    + parseLrc(content: String): List<LyricLine>
+    + parseTxt(content: String): List<LyricLine>
+  }
+
+  class LyricsCacheDataSource {
+    - db: Database
+    + getCached(trackPath: String): Future<LyricsCacheEntry?>
+    + insertCache(entry: LyricsCacheEntry): Future<void>
+    + deleteCache(trackPath: String): Future<void>
+    + clearAll(): Future<void>
+  }
+
+  ' ⚠️ Implementación pendiente de definición del flujo de backup
+  class BackupDataSource {
+    + buildBackupJson(backup: AppBackup): String
+    + parseBackupJson(json: String): AppBackup
+    + writeToFile(content: String, path: String): Future<File>
+    + pickFileToImport(): Future<File?>
+    + shareFile(file: File): Future<void>
+  }
+
+  class SettingsDataSource {
+    - prefs: SharedPreferences
+    + load(): Future<AppSettings>
+    + save(settings: AppSettings): Future<void>
+    + clear(): Future<void>
+  }
+
+  MediaRepositoryImpl ..|> MediaRepository
+  AudioRepositoryImpl ..|> AudioRepository
+  PlaylistRepositoryImpl ..|> PlaylistRepository
+  EqualizerRepositoryImpl ..|> EqualizerRepository
+  LyricsRepositoryImpl ..|> LyricsRepository
+  BackupRepositoryImpl ..|> BackupRepository
+  SettingsRepositoryImpl ..|> SettingsRepository
+
+  MediaRepositoryImpl --> LocalMediaDataSource
+  AudioRepositoryImpl --> AudioPlayerDataSource
+  PlaylistRepositoryImpl --> PlaylistLocalDataSource
+  EqualizerRepositoryImpl --> EqualizerDataSource
+  LyricsRepositoryImpl --> LyricsFileDataSource
+  LyricsRepositoryImpl --> LyricsCacheDataSource
+  BackupRepositoryImpl --> BackupDataSource
+  SettingsRepositoryImpl --> SettingsDataSource
+
+  class LocalMediaDataSource {
+    - audioQuery: OnAudioQuery
+    + queryTracks(): Future<List<SongModel>>
+    + queryAlbums(): Future<List<AlbumModel>>
+    + queryArtists(): Future<List<ArtistModel>>
+  }
+
+  class AudioPlayerDataSource {
+    - player: AudioPlayer
+    - audioHandler: AudioHandler
+    + play(uri: String): Future<void>
+    + pause(): Future<void>
+    + resume(): Future<void>
+    + stop(): Future<void>
+    + seekTo(position: Duration): Future<void>
+    + setQueue(uris: List<String>): Future<void>
+  }
+
+  class PlaylistLocalDataSource {
+    - db: Database
+    + getPlaylists(): Future<List<Map>>
+    + insertPlaylist(name: String): Future<int>
+    + deletePlaylist(id: int): Future<void>
+    + addTrack(playlistId: int, trackId: int, position: int): Future<void>
+    + removeTrack(playlistId: int, trackId: int): Future<void>
+    + getTrackIds(playlistId: int): Future<List<int>>
+  }
+
+  class EqualizerDataSource {
+    - equalizer: AndroidEqualizer
+    + getBands(): Future<List<AndroidEqualizerBand>>
+    + setBandGain(bandIndex: int, gain: double): Future<void>
+    + setEnabled(enabled: bool): Future<void>
+    + isEnabled(): Future<bool>
+  }
+
+' ─────────────────────────────────────────
+' PRESENTATION — BLoC
+' ─────────────────────────────────────────
+package "presentation/blocs" #E3F2FD {
+
+  class LibraryBloc {
+    - getAllTracks: GetAllTracksUseCase
+    - getAllAlbums: GetAllAlbumsUseCase
+    - getAllArtists: GetAllArtistsUseCase
+    + add(event: LibraryEvent): void
+  }
+
+  class PlayerBloc {
+    - playTrack: PlayTrackUseCase
+    - controlPlayback: ControlPlaybackUseCase
+    + add(event: PlayerEvent): void
+  }
+
+  class PlaylistBloc {
+    - getPlaylists: GetPlaylistsUseCase
+    - createPlaylist: CreatePlaylistUseCase
+    - deletePlaylist: DeletePlaylistUseCase
+    - addTrack: AddTrackToPlaylistUseCase
+    - removeTrack: RemoveTrackFromPlaylistUseCase
+    + add(event: PlaylistEvent): void
+  }
+
+  class EqualizerBloc {
+    - getProfiles: GetEqualizerProfilesUseCase
+    - saveProfile: SaveEqualizerProfileUseCase
+    - applyProfile: ApplyEqualizerProfileUseCase
+    - deleteProfile: DeleteEqualizerProfileUseCase
+    + add(event: EqualizerEvent): void
+  }
+
+  class LyricsBloc {
+    - getLyrics: GetLyricsUseCase
+    - cacheLyrics: CacheLyricsUseCase
+    + add(event: LyricsEvent): void
+  }
+
+  ' ⚠️ BackupBloc: estados y eventos pendientes de definición detallada
+  class BackupBloc {
+    - exportBackup: ExportBackupUseCase
+    - importBackup: ImportBackupUseCase
+    + add(event: BackupEvent): void
+  }
+
+  class SettingsBloc {
+    - getSettings: GetSettingsUseCase
+    - saveSettings: SaveSettingsUseCase
+    + add(event: SettingsEvent): void
+  }
+
+  ' SettingsBloc states
+  abstract class SettingsState
+  class SettingsInitial extends SettingsState
+  class SettingsLoaded extends SettingsState {
+    + settings: AppSettings
+  }
+  class SettingsError extends SettingsState {
+    + message: String
+  }
+
+  abstract class BackupState
+  class BackupIdle extends BackupState
+  class BackupInProgress extends BackupState {
+    + operation: String
+    + progress: double?
+  }
+  class BackupSuccess extends BackupState {
+    + file: File?
+    + metadata: BackupMetadata
+  }
+  class BackupError extends BackupState {
+    + message: String
+  }
+
+  ' PlayerBloc states
+  abstract class PlayerState
+  class PlayerInitial extends PlayerState
+  class PlayerLoading extends PlayerState
+  class PlayerPlaying extends PlayerState {
+    + track: Track
+    + position: Duration
+    + queue: List<Track>
+    + shuffleEnabled: bool
+    + repeatMode: RepeatMode
+  }
+  class PlayerPaused extends PlayerState {
+    + track: Track
+    + position: Duration
+  }
+  class PlayerError extends PlayerState {
+    + message: String
+  }
+
+  ' LibraryBloc states
+  abstract class LibraryState
+  class LibraryInitial extends LibraryState
+  class LibraryLoading extends LibraryState
+  class LibraryLoaded extends LibraryState {
+    + tracks: List<Track>
+    + albums: List<Album>
+    + artists: List<Artist>
+  }
+  class LibraryError extends LibraryState {
+    + message: String
+  }
+
+  ' PlaylistBloc states
+  abstract class PlaylistState
+  class PlaylistLoading extends PlaylistState
+  class PlaylistLoaded extends PlaylistState {
+    + playlists: List<Playlist>
+  }
+  class PlaylistError extends PlaylistState {
+    + message: String
+  }
+
+  ' EqualizerBloc states
+  abstract class EqualizerState
+  class EqualizerLoading extends EqualizerState
+  class EqualizerLoaded extends EqualizerState {
+    + profiles: List<EqualizerProfile>
+    + activeProfile: EqualizerProfile?
+    + isEnabled: bool
+  }
+
+  ' LyricsBloc states
+  abstract class LyricsState
+  class LyricsLoading extends LyricsState
+  class LyricsLoaded extends LyricsState {
+    + lyrics: Lyrics
+    + currentLine: LyricLine?
+  }
+  class LyricsNotFound extends LyricsState
+  class LyricsError extends LyricsState {
+    + message: String
+  }
+
+  PlayerBloc --> PlayTrackUseCase
+  PlayerBloc --> ControlPlaybackUseCase
+  PlayerBloc ..> PlayerState
+  LibraryBloc --> GetAllTracksUseCase
+  LibraryBloc --> GetAllAlbumsUseCase
+  LibraryBloc --> GetAllArtistsUseCase
+  LibraryBloc ..> LibraryState
+  PlaylistBloc --> GetPlaylistsUseCase
+  PlaylistBloc --> CreatePlaylistUseCase
+  PlaylistBloc --> DeletePlaylistUseCase
+  PlaylistBloc --> AddTrackToPlaylistUseCase
+  PlaylistBloc --> RemoveTrackFromPlaylistUseCase
+  PlaylistBloc ..> PlaylistState
+  EqualizerBloc --> GetEqualizerProfilesUseCase
+  EqualizerBloc --> SaveEqualizerProfileUseCase
+  EqualizerBloc --> ApplyEqualizerProfileUseCase
+  EqualizerBloc --> DeleteEqualizerProfileUseCase
+  EqualizerBloc ..> EqualizerState
+  LyricsBloc --> GetLyricsUseCase
+  LyricsBloc --> CacheLyricsUseCase
+  LyricsBloc ..> LyricsState
+  BackupBloc --> ExportBackupUseCase
+  BackupBloc --> ImportBackupUseCase
+  BackupBloc ..> BackupState
+  SettingsBloc --> GetSettingsUseCase
+  SettingsBloc --> SaveSettingsUseCase
+  SettingsBloc ..> SettingsState
+}
+
+@enduml

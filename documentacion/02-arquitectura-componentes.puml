@@ -1,0 +1,227 @@
+@startuml arquitectura-componentes
+!theme plain
+skinparam linetype ortho
+skinparam componentStyle rectangle
+skinparam defaultFontSize 11
+skinparam arrowColor #555555
+
+title mplay — Arquitectura (Clean Architecture + BLoC) v3
+
+package "Presentation Layer" #E3F2FD {
+  package "pages" #C9E3F7 {
+    [HomeScreen]
+    [NowPlayingScreen]
+    [AlbumDetailScreen]
+    [ArtistDetailScreen]
+    [PlaylistsScreen]
+    [PlaylistDetailScreen]
+    [EqualizerScreen]
+    [BackupRestoreScreen]
+    [SettingsScreen]
+  }
+  package "widgets" #C9E3F7 {
+    [PlayerBar]
+    [TrackTile]
+    [AlbumCard]
+    [LyricsView]
+    [EqualizerBandSlider]
+  }
+  package "blocs" #C9E3F7 {
+    [PlayerBloc]
+    [LibraryBloc]
+    [PlaylistBloc]
+    [EqualizerBloc]
+    [LyricsBloc]
+    [BackupBloc]
+    [SettingsBloc]
+  }
+  [HomeScreen] --> [LibraryBloc]
+  [HomeScreen] --> [PlayerBloc]
+  [NowPlayingScreen] --> [PlayerBloc]
+  [NowPlayingScreen] --> [LyricsBloc]
+  [NowPlayingScreen] ..> [LyricsView]
+  [EqualizerScreen] --> [EqualizerBloc]
+  [EqualizerScreen] ..> [EqualizerBandSlider]
+  [PlaylistsScreen] --> [PlaylistBloc]
+  [PlaylistDetailScreen] --> [PlaylistBloc]
+  [PlaylistDetailScreen] --> [PlayerBloc]
+  [BackupRestoreScreen] --> [BackupBloc]
+  [SettingsScreen] --> [SettingsBloc]
+  [HomeScreen] ..> [TrackTile]
+  [HomeScreen] ..> [AlbumCard]
+  [HomeScreen] ..> [PlayerBar]
+}
+
+package "Domain Layer" #E8F5E9 {
+  package "entities" #C8E6C9 {
+    [Track]
+    [Album]
+    [Artist]
+    [Playlist]
+    [EqualizerBand]
+    [EqualizerProfile]
+    [LyricLine]
+    [Lyrics]
+    [LyricsCacheEntry]
+    [AppBackup]
+    [BackupMetadata]
+    [AppSettings]
+  }
+  package "use_cases" #C8E6C9 {
+    [GetAllTracksUseCase]
+    [GetAllAlbumsUseCase]
+    [GetAllArtistsUseCase]
+    [PlayTrackUseCase]
+    [ControlPlaybackUseCase]
+    [GetPlaylistsUseCase]
+    [CreatePlaylistUseCase]
+    [DeletePlaylistUseCase]
+    [AddTrackToPlaylistUseCase]
+    [RemoveTrackFromPlaylistUseCase]
+    [GetEqualizerProfilesUseCase]
+    [SaveEqualizerProfileUseCase]
+    [ApplyEqualizerProfileUseCase]
+    [DeleteEqualizerProfileUseCase]
+    [GetLyricsUseCase]
+    [CacheLyricsUseCase]
+    [ExportBackupUseCase]
+    [ImportBackupUseCase]
+    [GetSettingsUseCase]
+    [SaveSettingsUseCase]
+  }
+  package "repositories (interfaces)" #C8E6C9 {
+    interface [MediaRepository]
+    interface [AudioRepository]
+    interface [PlaylistRepository]
+    interface [EqualizerRepository]
+    interface [LyricsRepository]
+    interface [BackupRepository]
+    interface [SettingsRepository]
+  }
+}
+
+package "Data Layer" #FFF8E1 {
+  package "repositories_impl" #FFF0C0 {
+    [MediaRepositoryImpl]
+    [AudioRepositoryImpl]
+    [PlaylistRepositoryImpl]
+    [EqualizerRepositoryImpl]
+    [LyricsRepositoryImpl]
+    [BackupRepositoryImpl]
+    [SettingsRepositoryImpl]
+  }
+  package "datasources" #FFF0C0 {
+    [LocalMediaDataSource]
+    [AudioPlayerDataSource]
+    [PlaylistLocalDataSource]
+    [EqualizerDataSource]
+    [LyricsFileDataSource]
+    [LyricsCacheDataSource]
+    [BackupDataSource]
+    [SettingsDataSource]
+  }
+}
+
+package "Paquetes Flutter" #FCE4EC {
+  [on_audio_query]
+  [just_audio]
+  [audio_service]
+  [just_audio_equalizer]
+  [sqflite]
+  [path_provider]
+  [file_picker]
+  [share_plus]
+  [shared_preferences]
+}
+
+package "Android Platform" #F3E5F5 {
+  [MediaStore API]
+  [Android Audio Focus]
+  [AudioEffect / Equalizer API]
+  [File System]
+  [SAF - Storage Access Framework]
+}
+
+' BLoC -> Use Cases
+[PlayerBloc] --> [PlayTrackUseCase]
+[PlayerBloc] --> [ControlPlaybackUseCase]
+[LibraryBloc] --> [GetAllTracksUseCase]
+[LibraryBloc] --> [GetAllAlbumsUseCase]
+[LibraryBloc] --> [GetAllArtistsUseCase]
+[PlaylistBloc] --> [GetPlaylistsUseCase]
+[PlaylistBloc] --> [CreatePlaylistUseCase]
+[PlaylistBloc] --> [DeletePlaylistUseCase]
+[PlaylistBloc] --> [AddTrackToPlaylistUseCase]
+[PlaylistBloc] --> [RemoveTrackFromPlaylistUseCase]
+[EqualizerBloc] --> [GetEqualizerProfilesUseCase]
+[EqualizerBloc] --> [SaveEqualizerProfileUseCase]
+[EqualizerBloc] --> [ApplyEqualizerProfileUseCase]
+[EqualizerBloc] --> [DeleteEqualizerProfileUseCase]
+[LyricsBloc] --> [GetLyricsUseCase]
+[LyricsBloc] --> [CacheLyricsUseCase]
+[BackupBloc] --> [ExportBackupUseCase]
+[BackupBloc] --> [ImportBackupUseCase]
+[SettingsBloc] --> [GetSettingsUseCase]
+[SettingsBloc] --> [SaveSettingsUseCase]
+
+' Use Cases -> Repositories (interfaces)
+[PlayTrackUseCase] --> [AudioRepository]
+[ControlPlaybackUseCase] --> [AudioRepository]
+[GetAllTracksUseCase] --> [MediaRepository]
+[GetAllAlbumsUseCase] --> [MediaRepository]
+[GetAllArtistsUseCase] --> [MediaRepository]
+[GetPlaylistsUseCase] --> [PlaylistRepository]
+[CreatePlaylistUseCase] --> [PlaylistRepository]
+[DeletePlaylistUseCase] --> [PlaylistRepository]
+[AddTrackToPlaylistUseCase] --> [PlaylistRepository]
+[RemoveTrackFromPlaylistUseCase] --> [PlaylistRepository]
+[GetEqualizerProfilesUseCase] --> [EqualizerRepository]
+[SaveEqualizerProfileUseCase] --> [EqualizerRepository]
+[ApplyEqualizerProfileUseCase] --> [EqualizerRepository]
+[DeleteEqualizerProfileUseCase] --> [EqualizerRepository]
+[GetLyricsUseCase] --> [LyricsRepository]
+[CacheLyricsUseCase] --> [LyricsRepository]
+[ExportBackupUseCase] --> [BackupRepository]
+[ImportBackupUseCase] --> [BackupRepository]
+[GetSettingsUseCase] --> [SettingsRepository]
+[SaveSettingsUseCase] --> [SettingsRepository]
+
+' Implementations
+[MediaRepository] <|.. [MediaRepositoryImpl]
+[AudioRepository] <|.. [AudioRepositoryImpl]
+[PlaylistRepository] <|.. [PlaylistRepositoryImpl]
+[EqualizerRepository] <|.. [EqualizerRepositoryImpl]
+[LyricsRepository] <|.. [LyricsRepositoryImpl]
+[BackupRepository] <|.. [BackupRepositoryImpl]
+[SettingsRepository] <|.. [SettingsRepositoryImpl]
+
+' Implementations -> DataSources
+[MediaRepositoryImpl] --> [LocalMediaDataSource]
+[AudioRepositoryImpl] --> [AudioPlayerDataSource]
+[PlaylistRepositoryImpl] --> [PlaylistLocalDataSource]
+[EqualizerRepositoryImpl] --> [EqualizerDataSource]
+[LyricsRepositoryImpl] --> [LyricsFileDataSource]
+[LyricsRepositoryImpl] --> [LyricsCacheDataSource]
+[BackupRepositoryImpl] --> [BackupDataSource]
+[SettingsRepositoryImpl] --> [SettingsDataSource]
+
+' DataSources -> Packages
+[LocalMediaDataSource] --> [on_audio_query]
+[AudioPlayerDataSource] --> [just_audio]
+[AudioPlayerDataSource] --> [audio_service]
+[EqualizerDataSource] --> [just_audio_equalizer]
+[PlaylistLocalDataSource] --> [sqflite]
+[LyricsCacheDataSource] --> [sqflite]
+[BackupDataSource] --> [path_provider]
+[BackupDataSource] --> [file_picker]
+[BackupDataSource] --> [share_plus]
+[SettingsDataSource] --> [shared_preferences]
+
+' Packages -> Platform
+[on_audio_query] --> [MediaStore API]
+[audio_service] --> [Android Audio Focus]
+[just_audio_equalizer] --> [AudioEffect / Equalizer API]
+[LyricsFileDataSource] --> [File System]
+[BackupDataSource] --> [SAF - Storage Access Framework]
+
+@enduml
