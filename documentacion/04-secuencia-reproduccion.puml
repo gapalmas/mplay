@@ -1,0 +1,76 @@
+@startuml secuencia-reproducir-cancion
+!theme plain
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign center
+
+title mplay — Secuencia: Reproducir una canción
+
+actor Usuario
+participant "TrackTile\n(Widget)" as UI
+participant "PlayerBloc" as Bloc
+participant "PlayTrackUseCase" as UC
+participant "AudioRepository\n(interface)" as Repo
+participant "AudioRepositoryImpl" as RepoImpl
+participant "AudioPlayerDataSource" as DS
+participant "just_audio\n+ audio_service" as Player
+
+== Tap en una canción ==
+
+Usuario -> UI : tap(track)
+activate UI
+UI -> Bloc : add(PlayTrackEvent(track, queue))
+deactivate UI
+activate Bloc
+
+Bloc -> Bloc : emit(PlayerLoading)
+
+Bloc -> UC : call(track, queue)
+activate UC
+
+UC -> Repo : play(track)\nsetQueue(queue)
+activate Repo
+Repo -> RepoImpl : play(track)\nsetQueue(queue)
+activate RepoImpl
+
+RepoImpl -> DS : play(track.filePath)\nsetQueue(uris)
+activate DS
+
+DS -> Player : setAudioSource()\nplay()
+activate Player
+Player --> DS : ok
+deactivate Player
+
+DS --> RepoImpl : ok
+deactivate DS
+RepoImpl --> Repo : ok
+deactivate RepoImpl
+Repo --> UC : ok
+deactivate Repo
+UC --> Bloc : ok
+deactivate UC
+
+== Actualización de estado en tiempo real ==
+
+Player -> DS : playerStateStream (playing)
+DS -> RepoImpl : playerStateStream
+RepoImpl -> Repo : playerStateStream
+Repo -> Bloc : playerStateStream.listen()
+
+Bloc -> Bloc : emit(PlayerPlaying(\n  track        ← title/artist/album\n  albumArtUri  ← portada\n  duration     ← duración total\n  format       ← mp3/flac/aac...\n  bitrate      ← kbps\n  position, queue\n))
+
+Bloc --> UI : state → PlayerPlaying
+activate UI
+UI -> Usuario : NowPlayingScreen muestra:\n─ Portada (albumArtUri)\n─ Título + artista + álbum\n─ Duración total\n─ Formato + bitrate (ej. FLAC 320 kbps)\n─ Controles de reproducción
+deactivate UI
+deactivate Bloc
+
+== Actualización de posición ==
+
+loop cada 200ms
+  Player -> Bloc : positionStream
+  Bloc -> Bloc : emit(PlayerPlaying(\n  ..., position actualizada\n))
+  Bloc --> UI : state actualizado
+  UI -> Usuario : actualiza barra de progreso
+end
+
+@enduml

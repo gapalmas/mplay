@@ -184,6 +184,26 @@ Soportados a través de `just_audio` + codecs nativos de Android:
 
 > El enum `AudioFormat` en la entidad `Track` representa el formato detectado a partir de la extensión del archivo.
 
+### Metadata de la canción en reproducción
+
+La entidad `Track` expone toda la información que `NowPlayingScreen` necesita mostrar:
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `title` | `String` | Nombre de la canción |
+| `artist` | `String` | Artista |
+| `album` | `String` | Álbum |
+| `albumArtUri` | `Uri?` | URI de la carátula (desde MediaStore) |
+| `duration` | `Duration` | Duración total de la pista |
+| `format` | `AudioFormat` | Formato del archivo (mp3, flac, etc.) |
+| `bitrate` | `int?` | Tasa de bits en kbps (ej. 128, 192, 320) |
+| `sampleRate` | `int?` | Frecuencia de muestreo en Hz (ej. 44100, 48000) |
+| `size` | `int?` | Tamaño del archivo en bytes |
+
+> `bitrate`, `sampleRate` y `size` se obtienen de Android `MediaStore` a través de `on_audio_query` (campos `_BITRATE`, `_SAMPLE_RATE`, `_SIZE`). Pueden ser `null` si el dispositivo no expone esos metadatos.
+
+`PlayerPlaying` contiene el `Track` completo, por lo que `NowPlayingScreen` (via `BlocBuilder<PlayerBloc, PlayerState>`) tiene acceso directo a todos estos campos sin llamadas adicionales.
+
 ---
 
 ## Ecualizador

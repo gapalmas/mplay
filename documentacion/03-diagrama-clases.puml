@@ -21,6 +21,9 @@ package "domain/entities" #E8F5E9 {
     + filePath: String
     + albumArtUri: Uri?
     + format: AudioFormat
+    + bitrate: int?
+    + sampleRate: int?
+    + size: int?
   }
 
   class Album {
@@ -577,6 +580,10 @@ package "presentation/blocs" #E3F2FD {
     + queue: List<Track>
     + shuffleEnabled: bool
     + repeatMode: RepeatMode
+    ' — Metadata rápida del track en reproducción
+    ' track.title, track.artist, track.album,
+    ' track.duration, track.format, track.bitrate,
+    ' track.albumArtUri — disponibles directamente
   }
   class PlayerPaused extends PlayerState {
     + track: Track

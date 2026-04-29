@@ -1,0 +1,59 @@
+@startuml estados-reproductor
+!theme plain
+skinparam defaultFontSize 11
+skinparam stateFontSize 11
+
+title mplay — Diagrama de Estados: PlayerBloc
+
+[*] --> Initial
+
+state Initial : Sin canción cargada\nControles deshabilitados
+
+state Loading : Cargando archivo de audio\nSpinner visible
+
+state Playing : Reproduciendo\n──────────────\ntitle / artist / album\nalbumArtUri: Uri?\nduration: Duration\nformat: AudioFormat\nbitrate: int? (kbps)\n──────────────\nposition: Duration\nqueue: List<Track>\nshuffleEnabled: bool\nrepeatMode: RepeatMode
+
+state Paused : En pausa\n──────────────\ntitle / artist / album\nalbumArtUri: Uri?\nformat / bitrate\n──────────────\nposition: Duration (guardada)
+
+state Error : Error de reproducción\n──────────────\nmessage: String
+
+Initial --> Loading : PlayTrackEvent
+
+Loading --> Playing : audio listo\n+ play()
+Loading --> Error : archivo no encontrado\no permiso denegado
+
+Playing --> Paused : PauseEvent
+Playing --> Loading : PlayTrackEvent\n(nueva canción)
+Playing --> Playing : SeekEvent\nSkipNextEvent\nSkipPreviousEvent\nShuffleModeChangedEvent\nRepeatModeChangedEvent
+Playing --> Initial : StopEvent\n(última canción terminada\n+ RepeatMode.none)
+Playing --> Error : error de audio
+
+Paused --> Playing : ResumeEvent
+Paused --> Loading : PlayTrackEvent\n(nueva canción)
+Paused --> Initial : StopEvent
+
+Error --> Loading : PlayTrackEvent\n(reintentar)
+Error --> Initial : StopEvent
+
+' ─────────────────────────────
+' Notas de transiciones internas
+' ─────────────────────────────
+note right of Playing
+  SkipNextEvent:
+  - Si hay siguiente en queue → Loading
+  - Si RepeatMode.all y es última → Loading (primera)
+  - Si RepeatMode.none y es última → Initial
+
+  SkipPreviousEvent:
+  - Si position > 3s → SeekTo(0)
+  - Si es la primera → SeekTo(0)
+  - Si no → carga anterior
+end note
+
+note right of Paused
+  El estado Paused conserva
+  la posición para reanudar
+  exactamente donde se pausó
+end note
+
+@enduml
