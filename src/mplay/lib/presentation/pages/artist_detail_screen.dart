@@ -6,6 +6,7 @@ import '../blocs/library/library_cubit.dart';
 import '../blocs/library/library_state.dart';
 import '../blocs/player/player_cubit.dart';
 import '../widgets/player_mini_player_bar.dart';
+import '../widgets/track_artwork.dart';
 import 'album_detail_screen.dart';
 import 'now_playing_screen.dart';
 
@@ -113,16 +114,11 @@ class ArtistDetailScreen extends StatelessWidget {
                               child: Column(
                                 children: [
                                   Expanded(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(10),
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .surfaceContainerHighest,
-                                      ),
-                                      child: const Center(
-                                        child: Icon(Icons.album_rounded),
-                                      ),
+                                    child: TrackArtwork(
+                                      track: album.tracks.first,
+                                      size: 120,
+                                      radius: 10,
+                                      iconSize: 32,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -151,7 +147,12 @@ class ArtistDetailScreen extends StatelessWidget {
                 ...artistTracks.take(5).map(
                   (track) => Card(
                     child: ListTile(
-                      leading: const Icon(Icons.play_arrow_rounded),
+                      leading: TrackArtwork(
+                        track: track,
+                        size: 40,
+                        radius: 20,
+                        iconSize: 20,
+                      ),
                       title: Text(track.title),
                       subtitle: Text(track.album),
                       trailing: Text(track.durationLabel),

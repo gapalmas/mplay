@@ -6,6 +6,7 @@ import '../blocs/library/library_cubit.dart';
 import '../blocs/library/library_state.dart';
 import '../blocs/player/player_cubit.dart';
 import '../widgets/player_mini_player_bar.dart';
+import '../widgets/track_artwork.dart';
 import 'now_playing_screen.dart';
 
 class PlaylistsScreen extends StatelessWidget {
@@ -28,9 +29,16 @@ class PlaylistsScreen extends StatelessWidget {
               final playlist = playlists[index];
               return Card(
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.library_music_rounded),
-                  ),
+                  leading: playlist.tracks.isNotEmpty
+                      ? TrackArtwork(
+                          track: playlist.tracks.first,
+                          size: 40,
+                          radius: 20,
+                          iconSize: 20,
+                        )
+                      : const CircleAvatar(
+                          child: Icon(Icons.library_music_rounded),
+                        ),
                   title: Text(playlist.name),
                   subtitle: Text('${playlist.trackCount} canciones'),
                   trailing: const Icon(Icons.chevron_right_rounded),
@@ -201,10 +209,15 @@ class PlaylistDetailScreen extends StatelessWidget {
                 final track = entry.value;
                 return Card(
                   child: ListTile(
-                    leading: CircleAvatar(child: Text('${index + 1}')),
+                    leading: TrackArtwork(
+                      track: track,
+                      size: 40,
+                      radius: 20,
+                      iconSize: 20,
+                    ),
                     title: Text(track.title),
                     subtitle: Text(track.artist),
-                    trailing: Text(track.durationLabel),
+                    trailing: Text('${index + 1}. ${track.durationLabel}'),
                     onTap: () {
                       context.read<PlayerCubit>().playTrack(
                         track,

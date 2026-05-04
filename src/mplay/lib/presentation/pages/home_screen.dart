@@ -235,9 +235,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             itemCount: artists.length,
             itemBuilder: (context, index) {
               final artist = artists[index];
+              DemoTrack? artistPreviewTrack;
+              for (final track in tracks) {
+                if (track.artist == artist.name) {
+                  artistPreviewTrack = track;
+                  break;
+                }
+              }
               return Card(
                 child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.person_rounded)),
+                  leading: artistPreviewTrack != null
+                      ? TrackArtwork(
+                          track: artistPreviewTrack,
+                          size: 40,
+                          radius: 20,
+                          iconSize: 20,
+                        )
+                      : const CircleAvatar(child: Icon(Icons.person_rounded)),
                   title: Text(artist.name),
                   subtitle: Text(
                     '${artist.albums} álbumes • ${artist.tracks} canciones',
@@ -257,11 +271,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             itemCount: playlists.length,
             itemBuilder: (context, index) {
               final playlist = playlists[index];
+              final playlistPreviewTrack =
+                  playlist.tracks.isNotEmpty ? playlist.tracks.first : null;
               return Card(
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.queue_music_rounded),
-                  ),
+                  leading: playlistPreviewTrack != null
+                      ? TrackArtwork(
+                          track: playlistPreviewTrack,
+                          size: 40,
+                          radius: 20,
+                          iconSize: 20,
+                        )
+                      : const CircleAvatar(
+                          child: Icon(Icons.queue_music_rounded),
+                        ),
                   title: Text(playlist.name),
                   subtitle: Text('${playlist.trackCount} canciones'),
                   onTap: () {
