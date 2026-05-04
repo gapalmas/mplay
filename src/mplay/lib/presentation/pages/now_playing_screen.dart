@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../blocs/player/player_cubit.dart';
 import '../blocs/player/player_state.dart';
+import '../blocs/player/player_state.dart' as player_state;
 import '../widgets/track_artwork.dart';
 
 class NowPlayingScreen extends StatefulWidget {
@@ -43,6 +44,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
         final track = state.currentTrack!;
         final maxPosition = state.maxPositionSeconds;
         _position = state.positionSeconds;
+        final primaryColor = Theme.of(context).colorScheme.primary;
         return Scaffold(
           appBar: AppBar(title: const Text('Now Playing')),
           body: SafeArea(
@@ -117,8 +119,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         IconButton(
-                          onPressed: () {},
+                          onPressed: context.read<PlayerCubit>().toggleShuffle,
                           icon: const Icon(Icons.shuffle_rounded),
+                          color: state.isShuffleEnabled ? primaryColor : null,
+                          tooltip: state.isShuffleEnabled
+                              ? 'Aleatorio activado'
+                              : 'Aleatorio desactivado',
                         ),
                         IconButton(
                           onPressed: context.read<PlayerCubit>().skipPrevious,
@@ -138,8 +144,20 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                           icon: const Icon(Icons.skip_next_rounded),
                         ),
                         IconButton(
-                          onPressed: () {},
-                          icon: const Icon(Icons.repeat_rounded),
+                          onPressed: context.read<PlayerCubit>().cycleRepeatMode,
+                          icon: Icon(
+                            state.repeatMode == player_state.RepeatMode.one
+                                ? Icons.repeat_one_rounded
+                                : Icons.repeat_rounded,
+                          ),
+                          color: state.repeatMode == player_state.RepeatMode.off
+                              ? null
+                              : primaryColor,
+                          tooltip: switch (state.repeatMode) {
+                            player_state.RepeatMode.off => 'Repetir desactivado',
+                            player_state.RepeatMode.all => 'Repetir cola',
+                            player_state.RepeatMode.one => 'Repetir canción',
+                          },
                         ),
                       ],
                     ),

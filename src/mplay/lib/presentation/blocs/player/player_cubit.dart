@@ -21,6 +21,7 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
   StreamSubscription? _sessionIdSub;
   StreamSubscription? _volumeSub;
   bool _isHandlingCompletion = false;
+  List<DemoTrack> _baseQueue = const [];
 
   void _subscribeToAudio() {
     _positionSub = _audioService.positionStream.listen((pos) {
@@ -55,11 +56,27 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     });
   }
 
-  Future<void> playTrack(DemoTrack track, {required List<DemoTrack> queue}) async {
+  Future<void> playTrack(
+    DemoTrack track, {
+    required List<DemoTrack> queue,
+    bool keepBaseQueue = false,
+  }) async {
     try {
+      if (!keepBaseQueue) {
+        _baseQueue = List<DemoTrack>.from(queue);
+      }
+
+      final sourceQueue = keepBaseQueue
+          ? List<DemoTrack>.from(state.queue)
+          : List<DemoTrack>.from(queue);
+
+        final effectiveQueue = (!keepBaseQueue && state.isShuffleEnabled)
+          ? _buildShuffledQueue(sourceQueue, track)
+          : sourceQueue;
+
       emit(state.copyWith(
         currentTrack: track,
-        queue: queue,
+        queue: effectiveQueue,
         isPlaying: false,
         positionSeconds: 0,
       ));
@@ -105,7 +122,20 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
       (track) => _sameTrack(track, state.currentTrack!),
     );
     if (idx >= 0 && idx < state.queue.length - 1) {
-      await playTrack(state.queue[idx + 1], queue: state.queue);
+      await playTrack(
+        state.queue[idx + 1],
+        queue: state.queue,
+        keepBaseQueue: true,
+      );
+      return;
+    }
+
+    if (state.repeatMode == player_state.RepeatMode.all && state.queue.isNotEmpty) {
+      await playTrack(
+        state.queue.first,
+        queue: state.queue,
+        keepBaseQueue: true,
+      );
     }
   }
 
@@ -115,7 +145,20 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
       (track) => _sameTrack(track, state.currentTrack!),
     );
     if (idx > 0) {
-      await playTrack(state.queue[idx - 1], queue: state.queue);
+      await playTrack(
+        state.queue[idx - 1],
+        queue: state.queue,
+        keepBaseQueue: true,
+      );
+      return;
+    }
+
+    if (state.repeatMode == player_state.RepeatMode.all && state.queue.isNotEmpty) {
+      await playTrack(
+        state.queue.last,
+        queue: state.queue,
+        keepBaseQueue: true,
+      );
     }
   }
 
@@ -123,10 +166,47 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     if (_isHandlingCompletion) return;
     _isHandlingCompletion = true;
     try {
+      if (state.repeatMode == player_state.RepeatMode.one && state.currentTrack != null) {
+        await _audioService.seek(Duration.zero);
+        await _audioService.play();
+        return;
+      }
+
       await skipNext();
     } finally {
       _isHandlingCompletion = false;
     }
+  }
+
+  Future<void> toggleShuffle() async {
+    final enable = !state.isShuffleEnabled;
+
+    if (enable) {
+      final current = state.currentTrack;
+      final source = _baseQueue.isNotEmpty ? _baseQueue : state.queue;
+      final shuffled = _buildShuffledQueue(source, current);
+      emit(state.copyWith(
+        isShuffleEnabled: true,
+        queue: shuffled,
+      ));
+      return;
+    }
+
+    final restored = _baseQueue.isNotEmpty ? List<DemoTrack>.from(_baseQueue) : List<DemoTrack>.from(state.queue);
+    emit(state.copyWith(
+      isShuffleEnabled: false,
+      queue: restored,
+    ));
+  }
+
+  Future<void> cycleRepeatMode() async {
+    final next = switch (state.repeatMode) {
+      player_state.RepeatMode.off => player_state.RepeatMode.all,
+      player_state.RepeatMode.all => player_state.RepeatMode.one,
+      player_state.RepeatMode.one => player_state.RepeatMode.off,
+    };
+
+    emit(state.copyWith(repeatMode: next));
   }
 
   bool _sameTrack(DemoTrack a, DemoTrack b) {
@@ -136,6 +216,28 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
       return aKey == bKey;
     }
     return a.title == b.title && a.artist == b.artist && a.album == b.album;
+  }
+
+  List<DemoTrack> _buildShuffledQueue(List<DemoTrack> queue, DemoTrack? currentTrack) {
+    if (queue.isEmpty) return const [];
+
+    final working = List<DemoTrack>.from(queue);
+    DemoTrack? current;
+
+    if (currentTrack != null) {
+      final idx = working.indexWhere((track) => _sameTrack(track, currentTrack));
+      if (idx >= 0) {
+        current = working.removeAt(idx);
+      }
+    }
+
+    working.shuffle();
+
+    if (current != null) {
+      return [current, ...working];
+    }
+
+    return working;
   }
 
   Future<bool> openEqualizer() async {
