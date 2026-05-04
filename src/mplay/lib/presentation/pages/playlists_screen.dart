@@ -126,17 +126,20 @@ class PlaylistDetailScreen extends StatelessWidget {
           );
         }
         final currentPlaylist = playlist;
+        final isDefaultPlaylist = currentPlaylist.name == 'Todas las canciones';
 
         return Scaffold(
           appBar: AppBar(
             title: Text(currentPlaylist.name),
             actions: [
               IconButton(
-                onPressed: () => _showRenameDialog(context, currentPlaylist.name),
+                onPressed: isDefaultPlaylist
+                    ? null
+                    : () => _showRenameDialog(context, currentPlaylist.name),
                 icon: const Icon(Icons.edit_rounded),
               ),
               IconButton(
-                onPressed: currentPlaylist.name == 'Todas las canciones'
+                onPressed: isDefaultPlaylist
                     ? null
                     : () async {
                         await context.read<LibraryCubit>().deletePlaylist(currentPlaylist.name);
@@ -217,7 +220,24 @@ class PlaylistDetailScreen extends StatelessWidget {
                     ),
                     title: Text(track.title),
                     subtitle: Text(track.artist),
-                    trailing: Text('${index + 1}. ${track.durationLabel}'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('${index + 1}. ${track.durationLabel}'),
+                        if (!isDefaultPlaylist) ...[
+                          const SizedBox(width: 4),
+                          IconButton(
+                            tooltip: 'Quitar de playlist',
+                            icon: const Icon(Icons.remove_circle_outline_rounded),
+                            onPressed: () => _confirmRemoveTrack(
+                              context,
+                              currentPlaylist.name,
+                              track,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                     onTap: () {
                       context.read<PlayerCubit>().playTrack(
                         track,
@@ -270,5 +290,48 @@ class PlaylistDetailScreen extends StatelessWidget {
     if (newName != null && newName.trim().isNotEmpty && context.mounted) {
       await context.read<LibraryCubit>().renamePlaylist(oldName, newName.trim());
     }
+  }
+
+  Future<void> _confirmRemoveTrack(
+    BuildContext context,
+    String playlistName,
+    DemoTrack track,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Quitar canción'),
+          content: Text(
+            '¿Quieres quitar "${track.title}" de "$playlistName"?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Quitar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    await context.read<LibraryCubit>().removeTrackFromPlaylist(
+          playlistName,
+          track,
+        );
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Canción eliminada de "$playlistName"'),
+      ),
+    );
   }
 }

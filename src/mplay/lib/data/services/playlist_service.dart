@@ -93,6 +93,22 @@ class PlaylistService {
     await _saveRawPlaylists(list);
   }
 
+  Future<void> removeTrackFromPlaylist(String playlistName, DemoTrack track) async {
+    final list = await _loadRawPlaylists();
+    final key = _trackKey(track);
+
+    for (final item in list) {
+      final name = item['name'] as String;
+      if (name.toLowerCase() != playlistName.toLowerCase()) continue;
+
+      final keys = (item['trackKeys'] as List).cast<String>();
+      keys.removeWhere((trackKey) => trackKey == key);
+      break;
+    }
+
+    await _saveRawPlaylists(list);
+  }
+
   Future<List<Map<String, dynamic>>> _loadRawPlaylists() async {
     final raw = _box.get(_playlistsKey) as String?;
     if (raw == null || raw.isEmpty) return [];

@@ -80,6 +80,11 @@ class LibraryCubit extends Cubit<LibraryState> {
     await loadLibrary();
   }
 
+  Future<void> removeTrackFromPlaylist(String playlistName, DemoTrack track) async {
+    await _playlistService.removeTrackFromPlaylist(playlistName, track);
+    await loadLibrary();
+  }
+
   List<DemoPlaylist> _buildDefaultPlaylists(List<DemoTrack> tracks) {
     if (tracks.isEmpty) return const [];
     final totalSec = tracks.fold(0, (sum, t) => sum + t.durationSeconds);
