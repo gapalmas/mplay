@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
+import '../blocs/app_settings/app_settings_cubit.dart';
+import '../blocs/app_settings/app_settings_state.dart';
 import '../widgets/player_mini_player_bar.dart';
 import 'backup_restore_screen.dart';
 
@@ -11,142 +15,189 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  ThemeMode selectedTheme = ThemeMode.system;
-  bool skipSilence = true;
-  int crossfadeSeconds = 3;
-  String language = 'Español (ES)';
-  String defaultEq = 'Rock';
+  late final Future<PackageInfo> _packageInfoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _packageInfoFuture = PackageInfo.fromPlatform();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Ajustes')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('Apariencia', style: Theme.of(context).textTheme.titleMedium),
-          Card(
-            child: RadioGroup<ThemeMode>(
-              groupValue: selectedTheme,
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                setState(() => selectedTheme = value);
-              },
-              child: const Column(
-                children: [
-                  RadioListTile<ThemeMode>(
-                    value: ThemeMode.system,
-                    title: Text('Seguir sistema'),
-                  ),
-                  RadioListTile<ThemeMode>(
-                    value: ThemeMode.light,
-                    title: Text('Claro'),
-                  ),
-                  RadioListTile<ThemeMode>(
-                    value: ThemeMode.dark,
-                    title: Text('Oscuro'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text('Reproducción', style: Theme.of(context).textTheme.titleMedium),
-          Card(
-            child: Column(
-              children: [
-                SwitchListTile.adaptive(
-                  value: skipSilence,
-                  onChanged: (value) => setState(() => skipSilence = value),
-                  title: const Text('Omitir silencios'),
-                ),
-                ListTile(
-                  title: const Text('Crossfade'),
-                  subtitle: Text('$crossfadeSeconds seg'),
-                  trailing: SizedBox(
-                    width: 140,
-                    child: Slider(
-                      value: crossfadeSeconds.toDouble(),
-                      min: 0,
-                      max: 12,
-                      divisions: 12,
-                      onChanged: (value) {
-                        setState(() => crossfadeSeconds = value.round());
+    return BlocBuilder<AppSettingsCubit, AppSettingsState>(
+      builder: (context, settings) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Ajustes')),
+          body: settings.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Text(
+                      'Apariencia',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Card(
+                      child: RadioGroup<ThemeMode>(
+                        groupValue: settings.themeMode,
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          context.read<AppSettingsCubit>().setThemeMode(value);
+                        },
+                        child: const Column(
+                          children: [
+                            RadioListTile<ThemeMode>(
+                              value: ThemeMode.system,
+                              title: Text('Seguir sistema'),
+                            ),
+                            RadioListTile<ThemeMode>(
+                              value: ThemeMode.light,
+                              title: Text('Claro'),
+                            ),
+                            RadioListTile<ThemeMode>(
+                              value: ThemeMode.dark,
+                              title: Text('Oscuro'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Reproducción',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Card(
+                      child: Column(
+                        children: [
+                          SwitchListTile.adaptive(
+                            value: settings.skipSilence,
+                            onChanged: context
+                                .read<AppSettingsCubit>()
+                                .setSkipSilence,
+                            title: const Text('Omitir silencios'),
+                            subtitle: const Text(
+                              'Se aplica durante la reproducción en Android.',
+                            ),
+                          ),
+                          ListTile(
+                            title: const Text('Volumen predeterminado'),
+                            subtitle: Text(
+                              '${(settings.defaultVolume * 100).round()}%',
+                            ),
+                            trailing: SizedBox(
+                              width: 160,
+                              child: Slider(
+                                value: settings.defaultVolume,
+                                min: 0,
+                                max: 1,
+                                divisions: 20,
+                                onChanged: context
+                                    .read<AppSettingsCubit>()
+                                    .setDefaultVolume,
+                              ),
+                            ),
+                          ),
+                          ListTile(
+                            title: const Text('Repetición predeterminada'),
+                            trailing: DropdownButton<DefaultRepeatMode>(
+                              value: settings.defaultRepeatMode,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                context
+                                    .read<AppSettingsCubit>()
+                                    .setDefaultRepeatMode(value);
+                              },
+                              items: const [
+                                DropdownMenuItem(
+                                  value: DefaultRepeatMode.off,
+                                  child: Text('Desactivada'),
+                                ),
+                                DropdownMenuItem(
+                                  value: DefaultRepeatMode.all,
+                                  child: Text('Repetir cola'),
+                                ),
+                                DropdownMenuItem(
+                                  value: DefaultRepeatMode.one,
+                                  child: Text('Repetir canción'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Idioma',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Card(
+                      child: ListTile(
+                        title: const Text('Idioma'),
+                        subtitle: const Text('Se aplicará en toda la app.'),
+                        trailing: DropdownButton<AppLanguage>(
+                          value: settings.language,
+                          onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            context.read<AppSettingsCubit>().setLanguage(value);
+                          },
+                          items: const [
+                            DropdownMenuItem(
+                              value: AppLanguage.system,
+                              child: Text('Seguir sistema'),
+                            ),
+                            DropdownMenuItem(
+                              value: AppLanguage.spanish,
+                              child: Text('Español'),
+                            ),
+                            DropdownMenuItem(
+                              value: AppLanguage.english,
+                              child: Text('English'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.tonal(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const BackupRestoreScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text('Copia de seguridad y restauración'),
+                    ),
+                    const SizedBox(height: 12),
+                    FutureBuilder<PackageInfo>(
+                      future: _packageInfoFuture,
+                      builder: (context, snapshot) {
+                        final version = snapshot.data;
+                        final label = version == null
+                            ? 'mplay'
+                            : 'mplay v${version.version}+${version.buildNumber}';
+                        return Center(
+                          child: Text(
+                            '$label • Flutter • Android',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        );
                       },
                     ),
-                  ),
+                  ],
                 ),
-                ListTile(
-                  title: const Text('EQ predeterminado'),
-                  trailing: DropdownButton<String>(
-                    value: defaultEq,
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() => defaultEq = value);
-                    },
-                    items: const [
-                      DropdownMenuItem(value: 'Plano', child: Text('Plano')),
-                      DropdownMenuItem(value: 'Rock', child: Text('Rock')),
-                      DropdownMenuItem(value: 'Pop', child: Text('Pop')),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text('Idioma', style: Theme.of(context).textTheme.titleMedium),
-          Card(
-            child: ListTile(
-              title: const Text('Idioma'),
-              trailing: DropdownButton<String>(
-                value: language,
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() => language = value);
-                },
-                items: const [
-                  DropdownMenuItem(
-                    value: 'Español (ES)',
-                    child: Text('Español (ES)'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'English (US)',
-                    child: Text('English (US)'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'System default',
-                    child: Text('System default'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.tonal(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BackupRestoreScreen()),
-              );
-            },
-            child: const Text('Copia de seguridad y restauración'),
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: Text(
-              'mplay v1.0.0 • Flutter • Android',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: const PlayerMiniPlayerBar(),
+          bottomNavigationBar: const PlayerMiniPlayerBar(),
+        );
+      },
     );
   }
 }

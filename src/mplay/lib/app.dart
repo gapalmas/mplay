@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'presentation/blocs/app_settings/app_settings_cubit.dart';
+import 'presentation/blocs/app_settings/app_settings_state.dart';
 import 'presentation/blocs/library/library_cubit.dart';
 import 'presentation/blocs/player/player_cubit.dart';
 import 'presentation/pages/home_screen.dart';
@@ -12,16 +14,21 @@ class MPlayApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider(create: (_) => AppSettingsCubit()),
         BlocProvider(create: (_) => LibraryCubit()),
-        BlocProvider(create: (_) => PlayerCubit()),
+        BlocProvider(create: (context) => PlayerCubit(context.read<AppSettingsCubit>())),
       ],
-      child: MaterialApp(
-        title: 'mplay',
-        debugShowCheckedModeBanner: false,
-        themeMode: ThemeMode.system,
-        theme: _theme(Brightness.light),
-        darkTheme: _theme(Brightness.dark),
-        home: const HomeScreen(),
+      child: BlocBuilder<AppSettingsCubit, AppSettingsState>(
+        builder: (context, settings) {
+          return MaterialApp(
+            title: 'mplay',
+            debugShowCheckedModeBanner: false,
+            themeMode: settings.themeMode,
+            theme: _theme(Brightness.light),
+            darkTheme: _theme(Brightness.dark),
+            home: const HomeScreen(),
+          );
+        },
       ),
     );
   }

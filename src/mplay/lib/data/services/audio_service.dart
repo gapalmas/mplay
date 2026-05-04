@@ -44,6 +44,10 @@ class AudioService {
     await _player.setVolume(clamped);
   }
 
+  Future<void> setSkipSilenceEnabled(bool enabled) async {
+    await _player.setSkipSilenceEnabled(enabled);
+  }
+
   Future<bool> openSystemEqualizer(int sessionId) async {
     try {
       final opened = await _audioFxChannel.invokeMethod<bool>(

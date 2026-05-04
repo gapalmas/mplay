@@ -5,21 +5,27 @@ import 'package:just_audio/just_audio.dart' as ja;
 
 import '../../../data/services/audio_service.dart';
 import '../../../domain/entities/demo_models.dart';
+import '../app_settings/app_settings_cubit.dart';
+import '../app_settings/app_settings_state.dart';
 import 'player_state.dart' as player_state;
 
 class PlayerCubit extends Cubit<player_state.PlayerState> {
-  PlayerCubit()
+  PlayerCubit(this._appSettingsCubit)
       : _audioService = AudioService(),
         super(const player_state.PlayerState()) {
     _subscribeToAudio();
+    _settingsSub = _appSettingsCubit.stream.listen(_applyPlaybackSettings);
+    _applyPlaybackSettings(_appSettingsCubit.state);
   }
 
   final AudioService _audioService;
+  final AppSettingsCubit _appSettingsCubit;
   StreamSubscription? _positionSub;
   StreamSubscription? _durationSub;
   StreamSubscription? _stateSub;
   StreamSubscription? _sessionIdSub;
   StreamSubscription? _volumeSub;
+  StreamSubscription? _settingsSub;
   bool _isHandlingCompletion = false;
   List<DemoTrack> _baseQueue = const [];
 
@@ -209,6 +215,34 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     emit(state.copyWith(repeatMode: next));
   }
 
+  Future<void> _applyPlaybackSettings(AppSettingsState settings) async {
+    if (settings.isLoading) {
+      return;
+    }
+
+    try {
+      await _audioService.setSkipSilenceEnabled(settings.skipSilence);
+    } catch (e) {
+      print('PlayerCubit: error applying skip silence: $e');
+    }
+
+    try {
+      await _audioService.setVolume(settings.defaultVolume);
+    } catch (e) {
+      print('PlayerCubit: error applying default volume: $e');
+    }
+
+    emit(
+      state.copyWith(
+        repeatMode: switch (settings.defaultRepeatMode) {
+          DefaultRepeatMode.all => player_state.RepeatMode.all,
+          DefaultRepeatMode.one => player_state.RepeatMode.one,
+          DefaultRepeatMode.off => player_state.RepeatMode.off,
+        },
+      ),
+    );
+  }
+
   bool _sameTrack(DemoTrack a, DemoTrack b) {
     final aKey = a.uri ?? a.filePath;
     final bKey = b.uri ?? b.filePath;
@@ -263,6 +297,7 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     await _stateSub?.cancel();
     await _sessionIdSub?.cancel();
     await _volumeSub?.cancel();
+    await _settingsSub?.cancel();
     await _audioService.dispose();
     return super.close();
   }
