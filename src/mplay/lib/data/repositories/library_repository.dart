@@ -40,7 +40,8 @@ class LibraryRepository {
   List<DemoAlbum> buildAlbums(List<DemoTrack> tracks) {
     final map = <String, List<DemoTrack>>{};
     for (final t in tracks) {
-      map.putIfAbsent(t.album, () => []).add(t);
+      final key = _albumGroupingKey(t);
+      map.putIfAbsent(key, () => []).add(t);
     }
 
     return map.entries.map((e) {
@@ -48,8 +49,12 @@ class LibraryRepository {
       final totalSec = albumTracks.fold(0, (sum, t) => sum + t.durationSeconds);
       final mins = totalSec ~/ 60;
       final secs = totalSec % 60;
+
+      final folderName = _folderNameFromPath(e.key);
+      final albumName = folderName?.isNotEmpty == true ? folderName! : albumTracks.first.album;
+
       return DemoAlbum(
-        name: e.key,
+        name: albumName,
         artist: albumTracks.first.artist,
         year: 0,
         totalDuration: '$mins:${secs.toString().padLeft(2, '0')}',
@@ -80,5 +85,25 @@ class LibraryRepository {
 
   Future<void> clearCache() async {
     await _cache.clearCache();
+  }
+
+  String _albumGroupingKey(DemoTrack track) {
+    final path = track.filePath;
+    if (path != null && path.isNotEmpty) {
+      final normalized = path.replaceAll('\\', '/');
+      final split = normalized.split('/');
+      if (split.length > 1) {
+        return split.sublist(0, split.length - 1).join('/');
+      }
+    }
+    return 'meta:${track.album.toLowerCase()}';
+  }
+
+  String? _folderNameFromPath(String key) {
+    if (key.startsWith('meta:')) return null;
+    final normalized = key.replaceAll('\\', '/');
+    final split = normalized.split('/').where((p) => p.isNotEmpty).toList();
+    if (split.isEmpty) return null;
+    return split.last;
   }
 }
