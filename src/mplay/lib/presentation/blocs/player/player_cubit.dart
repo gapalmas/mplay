@@ -19,6 +19,7 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
   StreamSubscription? _durationSub;
   StreamSubscription? _stateSub;
   StreamSubscription? _sessionIdSub;
+  StreamSubscription? _volumeSub;
 
   void _subscribeToAudio() {
     _positionSub = _audioService.positionStream.listen((pos) {
@@ -42,6 +43,10 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
       if (sessionId != null && sessionId > 0) {
         emit(state.copyWith(audioSessionId: sessionId));
       }
+    });
+
+    _volumeSub = _audioService.volumeStream.listen((volume) {
+      emit(state.copyWith(volume: volume));
     });
   }
 
@@ -113,12 +118,21 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     return _audioService.openSystemEqualizer(sessionId);
   }
 
+  Future<void> setVolume(double volume) async {
+    try {
+      await _audioService.setVolume(volume);
+    } catch (e) {
+      print('PlayerCubit: error setting volume: $e');
+    }
+  }
+
   @override
   Future<void> close() async {
     await _positionSub?.cancel();
     await _durationSub?.cancel();
     await _stateSub?.cancel();
     await _sessionIdSub?.cancel();
+    await _volumeSub?.cancel();
     await _audioService.dispose();
     return super.close();
   }

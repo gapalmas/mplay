@@ -146,9 +146,15 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                       children: [
                         const Icon(Icons.volume_down_rounded),
                         Expanded(
-                          child: Slider(value: 1, max: 1, onChanged: (_) {}),
+                          child: Slider(
+                            value: state.volume.clamp(0.0, 1.0),
+                            max: 1,
+                            onChanged: (value) {
+                              context.read<PlayerCubit>().setVolume(value);
+                            },
+                          ),
                         ),
-                        const Text('100%'),
+                        Text('${(state.volume * 100).round()}%'),
                       ],
                     ),
                     const SizedBox(height: 16),

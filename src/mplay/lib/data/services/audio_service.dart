@@ -13,6 +13,7 @@ class AudioService {
   Stream<Duration> get positionStream => _player.positionStream;
   Stream<Duration?> get durationStream => _player.durationStream;
   Stream<int?> get audioSessionIdStream => _player.androidAudioSessionIdStream;
+  Stream<double> get volumeStream => _player.volumeStream;
 
   bool get playing => _player.playing;
 
@@ -36,6 +37,11 @@ class AudioService {
       position = duration;
     }
     await _player.seek(position);
+  }
+
+  Future<void> setVolume(double volume) async {
+    final clamped = volume.clamp(0.0, 1.0).toDouble();
+    await _player.setVolume(clamped);
   }
 
   Future<bool> openSystemEqualizer(int sessionId) async {

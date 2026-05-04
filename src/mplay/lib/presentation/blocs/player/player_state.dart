@@ -7,6 +7,7 @@ class PlayerState {
     this.isPlaying = false,
     this.positionSeconds = 0,
     this.durationSeconds,
+    this.volume = 1.0,
     this.audioSessionId,
   });
 
@@ -15,6 +16,7 @@ class PlayerState {
   final bool isPlaying;
   final double positionSeconds;
   final double? durationSeconds;
+  final double volume;
   final int? audioSessionId;
 
   bool get hasTrack => currentTrack != null;
@@ -50,6 +52,7 @@ class PlayerState {
     bool? isPlaying,
     double? positionSeconds,
     double? durationSeconds,
+    double? volume,
     int? audioSessionId,
     bool clearTrack = false,
   }) {
@@ -59,6 +62,7 @@ class PlayerState {
       isPlaying: isPlaying ?? this.isPlaying,
       positionSeconds: positionSeconds ?? this.positionSeconds,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      volume: volume ?? this.volume,
       audioSessionId: audioSessionId ?? this.audioSessionId,
     );
   }
