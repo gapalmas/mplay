@@ -4,8 +4,8 @@
 **Lenguaje:** Dart  
 **Framework:** Flutter  
 **IDE:** Visual Studio Code  
-**OS de desarrollo:** Windows 11 Pro 64-bit (Build 26200)  
-**Fecha:** Abril 2026
+**OS de desarrollo:** Windows 11 Pro 64-bit (Build 26200) y Debian 13 (trixie)  
+**Fecha:** Mayo 2026
 
 ---
 
@@ -267,6 +267,100 @@ src/mplay/
 ## Referencias
 
 - Flutter install (Windows): https://docs.flutter.dev/get-started/install/windows/mobile
+- Flutter install (Linux): https://docs.flutter.dev/get-started/install/linux/android
 - Android Studio: https://developer.android.com/studio
 - JDK 17 (Adoptium): https://adoptium.net/
 - Flutter VSCode extension: https://marketplace.visualstudio.com/items?itemName=Dart-Code.flutter
+
+---
+
+## Anexo A — Configuración validada en Debian 13 (VS Code)
+
+> Este anexo documenta exactamente la configuración aplicada para poder continuar el desarrollo del proyecto `mplay` desde Debian 13.
+
+### A.1 Estado final (Debian)
+
+| Herramienta | Estado | Versión / Ruta |
+|---|---|---|
+| Flutter SDK | ✅ | 3.41.9 stable → `/home/develop/flutter` |
+| Dart SDK | ✅ | incluido con Flutter (`/home/develop/flutter/bin/cache/dart-sdk`) |
+| Android Studio | ✅ | `/opt/android-studio` |
+| Android SDK | ✅ | 36.1.0 → `/home/develop/Android/Sdk` |
+| Android cmdline-tools | ✅ | `/home/develop/Android/Sdk/cmdline-tools/latest` |
+| ANDROID_HOME | ✅ | `/home/develop/Android/Sdk` |
+| ANDROID_SDK_ROOT | ✅ | `/home/develop/Android/Sdk` |
+| Java | ✅ | OpenJDK 21 |
+| Linux toolchain (desktop) | ✅ | `clang`, `cmake`, `ninja-build`, `libgtk-3-dev` |
+
+Resultado de validación:
+
+```bash
+flutter doctor
+```
+
+Salida esperada/obtenida: `No issues found!`
+
+### A.2 Configuración del shell (`zsh`)
+
+En Debian el usuario `develop` usa `zsh`, por lo que la configuración quedó en `~/.zshrc`:
+
+```bash
+export FLUTTER_HOME="$HOME/flutter"
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+
+export PATH="$FLUTTER_HOME/bin:$PATH"
+export PATH="$ANDROID_HOME/platform-tools:$PATH"
+export PATH="$ANDROID_HOME/tools:$PATH"
+export PATH="$ANDROID_HOME/tools/bin:$PATH"
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+```
+
+Aplicar cambios en la sesión actual:
+
+```bash
+source ~/.zshrc
+```
+
+### A.3 Instalación de Android cmdline-tools (si faltan)
+
+Descarga e instalación manual utilizada:
+
+```bash
+cd /tmp
+wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -O cmdline-tools.zip
+unzip -q cmdline-tools.zip -d cmdline-tools-extracted
+mkdir -p "$HOME/Android/Sdk/cmdline-tools/latest"
+cp -r /tmp/cmdline-tools-extracted/cmdline-tools/* "$HOME/Android/Sdk/cmdline-tools/latest/"
+```
+
+### A.4 Aceptar licencias Android
+
+```bash
+yes | "$HOME/Android/Sdk/cmdline-tools/latest/bin/sdkmanager" --licenses
+```
+
+### A.5 Dependencias Linux desktop (Flutter)
+
+Para habilitar `Linux toolchain - develop for Linux desktop`:
+
+```bash
+sudo apt-get install -y clang cmake ninja-build libgtk-3-dev pkg-config
+```
+
+### A.6 Configuración en VS Code (workspace)
+
+Para forzar la detección correcta del SDK en el workspace:
+
+```json
+{
+  "dart.flutterSdkPath": "/home/develop/flutter",
+  "dart.sdkPath": "/home/develop/flutter/bin/cache/dart-sdk"
+}
+```
+
+### A.7 Nota operativa importante
+
+- Evitar ejecutar `flutter` como `root`.
+- Si VS Code abre terminal como `root`, cambiar el perfil/usuario de la terminal integrada para usar `develop`.
+- Si un dispositivo Android aparece como `unauthorized`, aceptar el diálogo de depuración USB en el teléfono.
