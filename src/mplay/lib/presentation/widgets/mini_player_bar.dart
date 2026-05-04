@@ -8,12 +8,14 @@ class MiniPlayerBar extends StatelessWidget {
     super.key,
     required this.track,
     required this.positionLabel,
+    required this.isPlaying,
     required this.onPlayPause,
     required this.onOpenNowPlaying,
   });
 
   final DemoTrack track;
   final String positionLabel;
+  final bool isPlaying;
   final VoidCallback onPlayPause;
   final VoidCallback onOpenNowPlaying;
 
@@ -72,7 +74,11 @@ class MiniPlayerBar extends StatelessWidget {
                     ),
                     IconButton(
                       onPressed: onPlayPause,
-                      icon: const Icon(Icons.play_arrow_rounded),
+                      icon: Icon(
+                        isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                      ),
                     ),
                     IconButton(
                       onPressed: () {},

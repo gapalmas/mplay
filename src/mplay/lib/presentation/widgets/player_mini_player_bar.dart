@@ -19,6 +19,7 @@ class PlayerMiniPlayerBar extends StatelessWidget {
         return MiniPlayerBar(
           track: state.currentTrack!,
           positionLabel: state.positionLabel,
+          isPlaying: state.isPlaying,
           onPlayPause: context.read<PlayerCubit>().togglePlayPause,
           onOpenNowPlaying: () {
             Navigator.of(context).push(
