@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../domain/entities/demo_models.dart';
 import '../blocs/library/library_cubit.dart';
 import '../blocs/library/library_state.dart';
 import '../blocs/player/player_cubit.dart';
@@ -165,6 +166,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     );
                   },
+                  onLongPress: () {
+                    _showAddToPlaylistSheet(
+                      context: context,
+                      track: track,
+                      playlists: playlists,
+                    );
+                  },
                 ),
               );
             },
@@ -259,10 +267,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => PlaylistsScreen(
-                          playlists: playlists,
-                          initialPlaylist: playlist,
-                        ),
+                        builder: (_) => const PlaylistsScreen(),
                       ),
                     );
                   },
@@ -278,10 +283,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               _libraryTabs.animateTo(3);
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => PlaylistsScreen(
-                    playlists: playlists,
-                    initialPlaylist: playlists.first,
-                  ),
+                  builder: (_) => const PlaylistsScreen(),
                 ),
               );
             },
@@ -291,6 +293,55 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       },
     );
+  }
+
+  Future<void> _showAddToPlaylistSheet({
+    required BuildContext context,
+    required DemoTrack track,
+    required List<DemoPlaylist> playlists,
+  }) async {
+    final customPlaylists = playlists
+        .where((playlist) => playlist.name != 'Todas las canciones')
+        .toList();
+
+    if (customPlaylists.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Primero crea una playlist personalizada.'),
+        ),
+      );
+      return;
+    }
+
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              const ListTile(title: Text('Añadir a playlist')),
+              ...customPlaylists.map(
+                (playlist) => ListTile(
+                  leading: const Icon(Icons.playlist_add_rounded),
+                  title: Text(playlist.name),
+                  onTap: () => Navigator.pop(sheetContext, playlist.name),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected != null && context.mounted) {
+      await context.read<LibraryCubit>().addTrackToPlaylist(selected, track);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Añadida a "$selected"')),
+        );
+      }
+    }
   }
 }
 
