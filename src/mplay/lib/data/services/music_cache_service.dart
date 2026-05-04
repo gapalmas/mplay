@@ -9,6 +9,8 @@ class MusicCacheService {
   static const _boxName = 'music_cache';
   static const _tracksKey = 'tracks';
   static const _timestampKey = 'last_scan';
+  static const _schemaKey = 'schema_version';
+  static const _schemaVersion = 2;
   static const _cacheValidityMs = 24 * 60 * 60 * 1000; // 24 hours
 
   late Box _box;
@@ -20,7 +22,9 @@ class MusicCacheService {
 
   bool get isCacheValid {
     final ts = _box.get(_timestampKey) as int?;
+    final schema = _box.get(_schemaKey) as int?;
     if (ts == null) return false;
+    if (schema != _schemaVersion) return false;
     return DateTime.now().millisecondsSinceEpoch - ts < _cacheValidityMs;
   }
 
@@ -31,7 +35,12 @@ class MusicCacheService {
 
     try {
       final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-      return list.map(_fromJson).toList();
+      final tracks = list.map(_fromJson).toList();
+      final hasArtworkMetadata = tracks.any((track) => (track.songId ?? 0) > 0);
+      if (!hasArtworkMetadata) {
+        return null;
+      }
+      return tracks;
     } catch (e) {
       print('MusicCacheService: decode error: $e');
       return null;
@@ -42,12 +51,14 @@ class MusicCacheService {
     final encoded = jsonEncode(tracks.map(_toJson).toList());
     await _box.put(_tracksKey, encoded);
     await _box.put(_timestampKey, DateTime.now().millisecondsSinceEpoch);
+    await _box.put(_schemaKey, _schemaVersion);
     print('MusicCacheService: cached ${tracks.length} tracks');
   }
 
   Future<void> clearCache() async {
     await _box.delete(_tracksKey);
     await _box.delete(_timestampKey);
+    await _box.delete(_schemaKey);
   }
 
   Map<String, dynamic> _toJson(DemoTrack t) => {

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../domain/entities/demo_models.dart';
 
@@ -10,7 +13,19 @@ class MusicScanner {
 
   /// Request and check storage permissions
   Future<bool> requestPermissions() async {
-    return _audioQuery.permissionsRequest();
+    final audioQueryPerm = await _audioQuery.permissionsRequest();
+
+    if (!Platform.isAndroid) {
+      return audioQueryPerm;
+    }
+
+    final audioStatus = await Permission.audio.request();
+    final imagesStatus = await Permission.photos.request();
+
+    final audioGranted = audioStatus.isGranted || audioStatus.isLimited;
+    final imagesGranted = imagesStatus.isGranted || imagesStatus.isLimited;
+
+    return audioQueryPerm && audioGranted && imagesGranted;
   }
 
   Future<bool> hasPermissions() async {
