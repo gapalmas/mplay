@@ -10,6 +10,7 @@ import 'album_detail_screen.dart';
 import 'artist_detail_screen.dart';
 import 'backup_restore_screen.dart';
 import 'equalizer_screen.dart';
+import 'library_search_delegate.dart';
 import 'now_playing_screen.dart';
 import 'playlists_screen.dart';
 import 'settings_screen.dart';
@@ -100,7 +101,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           appBar: AppBar(
             title: Text(strings.appTitle),
             actions: [
-              IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
+              IconButton(
+                onPressed: () {
+                  showSearch<void>(
+                    context: context,
+                    delegate: LibrarySearchDelegate(
+                      tracks: tracks,
+                      albums: albums,
+                      artists: artists,
+                      playlists: playlists,
+                      searchLabel: strings.searchLibrary,
+                      searchPrompt: strings.searchPrompt,
+                      noResultsLabel: strings.noSearchResults,
+                      songsLabel: strings.songs,
+                      albumsLabel: strings.albums,
+                      artistsLabel: strings.artists,
+                      playlistsLabel: strings.playlists,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.search_rounded),
+              ),
               PopupMenuButton<_TopMenu>(
                 onSelected: (selection) {
                   switch (selection) {

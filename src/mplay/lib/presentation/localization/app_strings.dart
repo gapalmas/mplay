@@ -102,4 +102,12 @@ class AppStrings {
     String get restore => isSpanish ? 'Restaurar' : 'Restore';
     String get delete => isSpanish ? 'Eliminar' : 'Delete';
     String get bytesLabel => 'bytes';
+      String get searchLibrary =>
+        isSpanish ? 'Buscar en tu biblioteca' : 'Search your library';
+      String get searchPrompt => isSpanish
+        ? 'Escribe el nombre de una canción, álbum, artista o playlist.'
+        : 'Type the name of a song, album, artist, or playlist.';
+      String get noSearchResults => isSpanish
+        ? 'No se encontraron resultados.'
+        : 'No results found.';
 }
