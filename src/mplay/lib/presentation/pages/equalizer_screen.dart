@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../blocs/player/player_cubit.dart';
+import '../blocs/player/player_state.dart';
 import '../widgets/player_mini_player_bar.dart';
 
 class EqualizerScreen extends StatefulWidget {
@@ -10,92 +13,58 @@ class EqualizerScreen extends StatefulWidget {
 }
 
 class _EqualizerScreenState extends State<EqualizerScreen> {
-  bool enabled = true;
-  String profile = 'Rock';
-  final frequencies = ['60Hz', '170Hz', '310Hz', '600Hz', '1kHz', '3kHz'];
-  late final List<double> values = [5, 2, 0, -1, 3, 4];
+  Future<void> _openEqualizer(BuildContext context) async {
+    final opened = await context.read<PlayerCubit>().openEqualizer();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          opened
+              ? 'Ecualizador del sistema abierto'
+              : 'No se pudo abrir el ecualizador. Inicia reproducción primero o verifica tu dispositivo.',
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Ecualizador')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: SwitchListTile.adaptive(
-              value: enabled,
-              onChanged: (value) => setState(() => enabled = value),
-              title: const Text('Ecualizador activo'),
-              subtitle: Text(enabled ? 'ON' : 'OFF'),
-            ),
-          ),
-          Card(
-            child: ListTile(
-              title: const Text('Perfil'),
-              trailing: DropdownButton<String>(
-                value: profile,
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() => profile = value);
-                },
-                items: const [
-                  DropdownMenuItem(value: 'Plano', child: Text('Plano')),
-                  DropdownMenuItem(value: 'Rock', child: Text('Rock')),
-                  DropdownMenuItem(value: 'Pop', child: Text('Pop')),
-                  DropdownMenuItem(value: 'Jazz', child: Text('Jazz')),
-                ],
+    return BlocBuilder<PlayerCubit, PlayerState>(
+      builder: (context, state) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Ecualizador')),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.equalizer_rounded),
+                  title: const Text('Ecualizador del sistema'),
+                  subtitle: Text(
+                    state.audioSessionId != null
+                        ? 'Sesión de audio activa detectada'
+                        : 'Primero inicia la reproducción de una canción',
+                  ),
+                ),
               ),
-            ),
-          ),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                children: List.generate(frequencies.length, (index) {
-                  return Row(
-                    children: [
-                      SizedBox(width: 56, child: Text(frequencies[index])),
-                      Expanded(
-                        child: Slider(
-                          value: values[index],
-                          min: -12,
-                          max: 12,
-                          divisions: 24,
-                          label: values[index].toStringAsFixed(0),
-                          onChanged: enabled
-                              ? (value) {
-                                  setState(() => values[index] = value);
-                                }
-                              : null,
-                        ),
-                      ),
-                      SizedBox(
-                        width: 30,
-                        child: Text(values[index].toStringAsFixed(0)),
-                      ),
-                    ],
-                  );
-                }),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: state.audioSessionId != null
+                    ? () => _openEqualizer(context)
+                    : null,
+                icon: const Icon(Icons.tune_rounded),
+                label: const Text('Abrir ecualizador'),
               ),
-            ),
+              const SizedBox(height: 12),
+              Text(
+                'Este botón abre el panel de audio del dispositivo para ajustar bandas y efectos sobre la reproducción actual.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
           ),
-          FilledButton.tonalIcon(
-            onPressed: () {
-              setState(() {
-                for (var index = 0; index < values.length; index++) {
-                  values[index] = 0;
-                }
-              });
-            },
-            icon: const Icon(Icons.restart_alt_rounded),
-            label: const Text('Restablecer'),
-          ),
-        ],
-      ),
-      bottomNavigationBar: const PlayerMiniPlayerBar(),
+          bottomNavigationBar: const PlayerMiniPlayerBar(),
+        );
+      },
     );
   }
 }

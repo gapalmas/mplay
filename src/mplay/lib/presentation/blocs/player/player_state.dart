@@ -7,6 +7,7 @@ class PlayerState {
     this.isPlaying = false,
     this.positionSeconds = 0,
     this.durationSeconds,
+    this.audioSessionId,
   });
 
   final DemoTrack? currentTrack;
@@ -14,6 +15,7 @@ class PlayerState {
   final bool isPlaying;
   final double positionSeconds;
   final double? durationSeconds;
+  final int? audioSessionId;
 
   bool get hasTrack => currentTrack != null;
 
@@ -48,6 +50,7 @@ class PlayerState {
     bool? isPlaying,
     double? positionSeconds,
     double? durationSeconds,
+    int? audioSessionId,
     bool clearTrack = false,
   }) {
     return PlayerState(
@@ -56,6 +59,7 @@ class PlayerState {
       isPlaying: isPlaying ?? this.isPlaying,
       positionSeconds: positionSeconds ?? this.positionSeconds,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      audioSessionId: audioSessionId ?? this.audioSessionId,
     );
   }
 }
