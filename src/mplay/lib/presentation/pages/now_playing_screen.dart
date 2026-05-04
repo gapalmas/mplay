@@ -64,6 +64,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                               .toDouble(),
                           radius: 24,
                           iconSize: 120,
+                          querySize: 1400,
+                          artworkFilterQuality: FilterQuality.high,
                         ),
                       ),
                     ),

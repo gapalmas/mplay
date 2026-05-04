@@ -12,12 +12,18 @@ class TrackArtwork extends StatelessWidget {
     this.size = 48,
     this.radius = 10,
     this.iconSize = 24,
+    this.querySize,
+    this.queryQuality = 100,
+    this.artworkFilterQuality = FilterQuality.high,
   });
 
   final DemoTrack track;
   final double size;
   final double radius;
   final double iconSize;
+  final int? querySize;
+  final int queryQuality;
+  final FilterQuality artworkFilterQuality;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +35,9 @@ class TrackArtwork extends StatelessWidget {
         child: QueryArtworkWidget(
           id: track.songId!,
           type: ArtworkType.AUDIO,
+          size: querySize ?? _recommendedQuerySize(size),
+          quality: queryQuality,
+          artworkQuality: artworkFilterQuality,
           artworkWidth: size,
           artworkHeight: size,
           artworkFit: BoxFit.cover,
@@ -89,6 +98,7 @@ class TrackArtwork extends StatelessWidget {
             width: size,
             height: size,
             fit: BoxFit.cover,
+            filterQuality: artworkFilterQuality,
             gaplessPlayback: true,
             errorBuilder: (context, error, stackTrace) => _fallback(context),
           ),
@@ -97,5 +107,12 @@ class TrackArtwork extends StatelessWidget {
     }
 
     return _fallback(context);
+  }
+
+  int _recommendedQuerySize(double displaySize) {
+    final scaled = (displaySize * 2.2).round();
+    if (scaled < 256) return 256;
+    if (scaled > 1600) return 1600;
+    return scaled;
   }
 }
