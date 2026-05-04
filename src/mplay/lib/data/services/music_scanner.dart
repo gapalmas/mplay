@@ -63,6 +63,10 @@ class MusicScanner {
     final durationSec = (durationMs / 1000).round();
     final mins = durationSec ~/ 60;
     final secs = durationSec % 60;
+    final bitrateKbps = _estimateBitrateKbps(
+      sizeBytes: song.size,
+      durationMs: durationMs,
+    );
 
     return DemoTrack(
       title: song.title.isNotEmpty ? song.title : 'Unknown Title',
@@ -71,10 +75,23 @@ class MusicScanner {
       durationLabel: '$mins:${secs.toString().padLeft(2, '0')}',
       durationSeconds: durationSec,
       format: song.fileExtension.toUpperCase().isNotEmpty ? song.fileExtension.toUpperCase() : 'MP3',
-      bitrateKbps: 0,
+      bitrateKbps: bitrateKbps,
       songId: song.id,
       uri: song.uri,
       filePath: song.data,
     );
+  }
+
+  int _estimateBitrateKbps({
+    required int sizeBytes,
+    required int durationMs,
+  }) {
+    if (sizeBytes <= 0 || durationMs <= 0) {
+      return 0;
+    }
+
+    // kbps ≈ (bytes * 8) / durationMs
+    final kbps = ((sizeBytes * 8) / durationMs).round();
+    return kbps > 0 ? kbps : 0;
   }
 }

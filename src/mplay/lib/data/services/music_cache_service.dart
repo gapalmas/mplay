@@ -10,7 +10,7 @@ class MusicCacheService {
   static const _tracksKey = 'tracks';
   static const _timestampKey = 'last_scan';
   static const _schemaKey = 'schema_version';
-  static const _schemaVersion = 2;
+  static const _schemaVersion = 3;
   static const _cacheValidityMs = 24 * 60 * 60 * 1000; // 24 hours
 
   late Box _box;
@@ -37,7 +37,11 @@ class MusicCacheService {
       final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
       final tracks = list.map(_fromJson).toList();
       final hasArtworkMetadata = tracks.any((track) => (track.songId ?? 0) > 0);
+      final hasBitrate = tracks.any((track) => track.bitrateKbps > 0);
       if (!hasArtworkMetadata) {
+        return null;
+      }
+      if (!hasBitrate) {
         return null;
       }
       return tracks;
