@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../blocs/player/player_cubit.dart';
 import '../blocs/player/player_state.dart';
+import '../widgets/track_artwork.dart';
 
 class NowPlayingScreen extends StatefulWidget {
   const NowPlayingScreen({super.key});
@@ -54,22 +55,15 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                       children: [
                     AspectRatio(
                       aspectRatio: 1,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Theme.of(context).colorScheme.primaryContainer,
-                              Theme.of(context)
-                                  .colorScheme
-                                  .secondaryContainer,
-                            ],
-                          ),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.album_rounded, size: 120),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: TrackArtwork(
+                          track: track,
+                          size: (MediaQuery.sizeOf(context).width - 40)
+                              .clamp(120.0, 420.0)
+                              .toDouble(),
+                          radius: 24,
+                          iconSize: 120,
                         ),
                       ),
                     ),

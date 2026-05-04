@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/demo_models.dart';
 import '../blocs/player/player_cubit.dart';
 import '../widgets/player_mini_player_bar.dart';
+import '../widgets/track_artwork.dart';
 import 'now_playing_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -23,11 +24,14 @@ class AlbumDetailScreen extends StatelessWidget {
               Container(
                 width: 120,
                 height: 120,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+                child: TrackArtwork(
+                  track: album.tracks.first,
+                  size: 120,
+                  radius: 16,
+                  iconSize: 54,
                 ),
-                child: const Icon(Icons.album_rounded, size: 54),
               ),
               const SizedBox(width: 14),
               Expanded(

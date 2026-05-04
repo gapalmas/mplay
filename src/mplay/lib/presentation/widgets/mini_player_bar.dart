@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/demo_models.dart';
+import 'track_artwork.dart';
 
 class MiniPlayerBar extends StatelessWidget {
   const MiniPlayerBar({
@@ -38,9 +39,14 @@ class MiniPlayerBar extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 18,
-                      child: Icon(Icons.music_note_rounded),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: TrackArtwork(
+                        track: track,
+                        size: 36,
+                        radius: 18,
+                        iconSize: 18,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(

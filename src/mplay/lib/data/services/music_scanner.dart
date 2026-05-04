@@ -57,6 +57,7 @@ class MusicScanner {
       durationSeconds: durationSec,
       format: song.fileExtension.toUpperCase().isNotEmpty ? song.fileExtension.toUpperCase() : 'MP3',
       bitrateKbps: 0,
+      songId: song.id,
       uri: song.uri,
       filePath: song.data,
     );

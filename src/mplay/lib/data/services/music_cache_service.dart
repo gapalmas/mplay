@@ -58,6 +58,7 @@ class MusicCacheService {
         'durationSeconds': t.durationSeconds,
         'format': t.format,
         'bitrateKbps': t.bitrateKbps,
+        'songId': t.songId,
         'filePath': t.filePath,
         'uri': t.uri,
       };
@@ -70,6 +71,7 @@ class MusicCacheService {
         durationSeconds: m['durationSeconds'] as int,
         format: m['format'] as String,
         bitrateKbps: m['bitrateKbps'] as int,
+        songId: m['songId'] as int?,
         filePath: m['filePath'] as String?,
         uri: m['uri'] as String?,
       );

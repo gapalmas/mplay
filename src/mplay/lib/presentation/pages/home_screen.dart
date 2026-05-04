@@ -12,6 +12,7 @@ import 'now_playing_screen.dart';
 import 'playlists_screen.dart';
 import 'settings_screen.dart';
 import '../widgets/player_mini_player_bar.dart';
+import '../widgets/track_artwork.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -147,7 +148,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               final track = tracks[index];
               return Card(
                 child: ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.music_note)),
+                  leading: TrackArtwork(
+                    track: track,
+                    size: 40,
+                    radius: 20,
+                    iconSize: 20,
+                  ),
                   title: Text(track.title),
                   subtitle: Text(track.artist),
                   trailing: Text(track.durationLabel),
@@ -190,15 +196,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.album_rounded, size: 48),
+                          child: Center(
+                            child: TrackArtwork(
+                              track: album.tracks.first,
+                              size: 220,
+                              radius: 12,
+                              iconSize: 48,
                             ),
                           ),
                         ),
