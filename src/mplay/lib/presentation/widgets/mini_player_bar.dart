@@ -9,6 +9,8 @@ class MiniPlayerBar extends StatelessWidget {
     required this.track,
     required this.positionLabel,
     required this.isPlaying,
+    required this.onSkipPrevious,
+    required this.onSkipNext,
     required this.onPlayPause,
     required this.onOpenNowPlaying,
   });
@@ -16,6 +18,8 @@ class MiniPlayerBar extends StatelessWidget {
   final DemoTrack track;
   final String positionLabel;
   final bool isPlaying;
+  final VoidCallback onSkipPrevious;
+  final VoidCallback onSkipNext;
   final VoidCallback onPlayPause;
   final VoidCallback onOpenNowPlaying;
 
@@ -69,7 +73,7 @@ class MiniPlayerBar extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: onSkipPrevious,
                       icon: const Icon(Icons.skip_previous_rounded),
                     ),
                     IconButton(
@@ -81,7 +85,7 @@ class MiniPlayerBar extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: onSkipNext,
                       icon: const Icon(Icons.skip_next_rounded),
                     ),
                   ],

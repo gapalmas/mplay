@@ -121,7 +121,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                           icon: const Icon(Icons.shuffle_rounded),
                         ),
                         IconButton(
-                          onPressed: () {},
+                          onPressed: context.read<PlayerCubit>().skipPrevious,
                           icon: const Icon(Icons.skip_previous_rounded),
                         ),
                         FilledButton.tonalIcon(
@@ -134,7 +134,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                           label: Text(state.isPlaying ? 'Pause' : 'Play'),
                         ),
                         IconButton(
-                          onPressed: () {},
+                          onPressed: context.read<PlayerCubit>().skipNext,
                           icon: const Icon(Icons.skip_next_rounded),
                         ),
                         IconButton(

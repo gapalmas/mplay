@@ -20,6 +20,7 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
   StreamSubscription? _stateSub;
   StreamSubscription? _sessionIdSub;
   StreamSubscription? _volumeSub;
+  bool _isHandlingCompletion = false;
 
   void _subscribeToAudio() {
     _positionSub = _audioService.positionStream.listen((pos) {
@@ -37,6 +38,10 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
           ps.processingState != ja.ProcessingState.completed &&
           ps.processingState != ja.ProcessingState.idle;
       emit(state.copyWith(isPlaying: isPlaying));
+
+      if (ps.processingState == ja.ProcessingState.completed) {
+        unawaited(_handleTrackCompleted());
+      }
     });
 
     _sessionIdSub = _audioService.audioSessionIdStream.listen((sessionId) {
@@ -96,7 +101,9 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
 
   Future<void> skipNext() async {
     if (state.queue.isEmpty || state.currentTrack == null) return;
-    final idx = state.queue.indexWhere((t) => t.title == state.currentTrack!.title);
+    final idx = state.queue.indexWhere(
+      (track) => _sameTrack(track, state.currentTrack!),
+    );
     if (idx >= 0 && idx < state.queue.length - 1) {
       await playTrack(state.queue[idx + 1], queue: state.queue);
     }
@@ -104,10 +111,31 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
 
   Future<void> skipPrevious() async {
     if (state.queue.isEmpty || state.currentTrack == null) return;
-    final idx = state.queue.indexWhere((t) => t.title == state.currentTrack!.title);
+    final idx = state.queue.indexWhere(
+      (track) => _sameTrack(track, state.currentTrack!),
+    );
     if (idx > 0) {
       await playTrack(state.queue[idx - 1], queue: state.queue);
     }
+  }
+
+  Future<void> _handleTrackCompleted() async {
+    if (_isHandlingCompletion) return;
+    _isHandlingCompletion = true;
+    try {
+      await skipNext();
+    } finally {
+      _isHandlingCompletion = false;
+    }
+  }
+
+  bool _sameTrack(DemoTrack a, DemoTrack b) {
+    final aKey = a.uri ?? a.filePath;
+    final bKey = b.uri ?? b.filePath;
+    if (aKey != null && bKey != null) {
+      return aKey == bKey;
+    }
+    return a.title == b.title && a.artist == b.artist && a.album == b.album;
   }
 
   Future<bool> openEqualizer() async {
