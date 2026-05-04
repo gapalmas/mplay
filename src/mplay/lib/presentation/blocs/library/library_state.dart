@@ -7,6 +7,7 @@ class LibraryState {
     this.albums = const [],
     this.artists = const [],
     this.playlists = const [],
+    this.error,
   });
 
   final bool isLoading;
@@ -14,6 +15,9 @@ class LibraryState {
   final List<DemoAlbum> albums;
   final List<DemoArtist> artists;
   final List<DemoPlaylist> playlists;
+  final String? error;
+
+  bool get hasError => error != null;
 
   LibraryState copyWith({
     bool? isLoading,
@@ -21,6 +25,8 @@ class LibraryState {
     List<DemoAlbum>? albums,
     List<DemoArtist>? artists,
     List<DemoPlaylist>? playlists,
+    String? error,
+    bool clearError = false,
   }) {
     return LibraryState(
       isLoading: isLoading ?? this.isLoading,
@@ -28,6 +34,7 @@ class LibraryState {
       albums: albums ?? this.albums,
       artists: artists ?? this.artists,
       playlists: playlists ?? this.playlists,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }

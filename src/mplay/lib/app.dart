@@ -12,7 +12,7 @@ class MPlayApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => LibraryCubit()..loadLibrary()),
+        BlocProvider(create: (_) => LibraryCubit()),
         BlocProvider(create: (_) => PlayerCubit()),
       ],
       child: MaterialApp(

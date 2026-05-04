@@ -1,98 +1,84 @@
-import 'package:on_audio_query/on_audio_query.dart';
-
-import '../../domain/entities/demo_models.dart';
 import '../services/music_scanner.dart';
+import '../services/music_cache_service.dart';
+import '../../domain/entities/demo_models.dart';
 
+/// Loads the music library: returns cached tracks if valid,
+/// otherwise scans the device and caches the result.
 class LibraryRepository {
-  final MusicScanner _musicScanner = MusicScanner();
+  LibraryRepository()
+      : _scanner = MusicScanner(),
+        _cache = MusicCacheService();
 
-  /// Get all available tracks from device
-  Future<List<DemoTrack>> getAllTracks() async {
-    final songs = await _musicScanner.querySongs();
-    return _convertSongsToTracks(songs);
+  final MusicScanner _scanner;
+  final MusicCacheService _cache;
+
+  Future<void> initialize() async {
+    await _cache.initialize();
   }
 
-  /// Get all albums from device
-  Future<List<DemoAlbum>> getAllAlbums() async {
-    final albums = await _musicScanner.queryAlbums();
-    final tracks = await getAllTracks();
+  /// Returns all tracks. Uses cache if fresh, else scans device.
+  Future<List<DemoTrack>> getAllTracks({bool forceRefresh = false}) async {
+    if (!forceRefresh) {
+      final cached = _cache.getCachedTracks();
+      if (cached != null) {
+        print('LibraryRepository: returning ${cached.length} tracks from cache');
+        return cached;
+      }
+    }
 
-    return albums.map((album) {
-      final albumTracks = tracks
-          .where((track) => track.album.toLowerCase() == album.album.toLowerCase())
-          .toList();
+    print('LibraryRepository: scanning device music...');
+    final tracks = await _scanner.scanTracks();
 
+    if (tracks.isNotEmpty) {
+      await _cache.cacheTracks(tracks);
+    }
+
+    return tracks;
+  }
+
+  /// Groups tracks by album name and returns list of [DemoAlbum]
+  List<DemoAlbum> buildAlbums(List<DemoTrack> tracks) {
+    final map = <String, List<DemoTrack>>{};
+    for (final t in tracks) {
+      map.putIfAbsent(t.album, () => []).add(t);
+    }
+
+    return map.entries.map((e) {
+      final albumTracks = e.value;
+      final totalSec = albumTracks.fold(0, (sum, t) => sum + t.durationSeconds);
+      final mins = totalSec ~/ 60;
+      final secs = totalSec % 60;
       return DemoAlbum(
-        name: album.album,
-        artist: album.artist ?? 'Unknown Artist',
-        year: album.numOfSongs > 0 ? 2024 : 2024,
-        totalDuration: _calculateDuration(albumTracks),
+        name: e.key,
+        artist: albumTracks.first.artist,
+        year: 0,
+        totalDuration: '$mins:${secs.toString().padLeft(2, '0')}',
         tracks: albumTracks,
       );
-    }).toList();
+    }).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
   }
 
-  /// Get all artists from device
-  Future<List<DemoArtist>> getAllArtists() async {
-    final artists = await _musicScanner.queryArtists();
-    final songs = await _musicScanner.querySongs();
-
-    return artists.map((artist) {
-      final artistSongs = songs
-          .where((song) =>
-              (song.artist ?? '').toLowerCase() == artist.artist.toLowerCase())
-          .toList();
-
-      return DemoArtist(
-        name: artist.artist,
-        albums: 0,
-        tracks: artistSongs.length,
-      );
-    }).toList();
-  }
-
-  /// Convert SongModel from on_audio_query to DemoTrack
-  List<DemoTrack> _convertSongsToTracks(List<SongModel> songs) {
-    return songs.map((song) {
-      final duration = Duration(milliseconds: song.duration ?? 0);
-      final minutes = duration.inMinutes;
-      final seconds = duration.inSeconds % 60;
-      final durationLabel = '$minutes:${seconds.toString().padLeft(2, '0')}';
-
-      return DemoTrack(
-        title: song.title,
-        artist: song.artist ?? 'Unknown Artist',
-        album: song.album ?? 'Unknown Album',
-        durationLabel: durationLabel,
-        durationSeconds: (song.duration ?? 0) ~/ 1000,
-        format: _getAudioFormat(song.data),
-        bitrateKbps: 320,
-        filePath: song.data,
-        uri: song.uri,
-      );
-    }).toList();
-  }
-
-  String _getAudioFormat(String filePath) {
-    if (filePath.endsWith('.flac')) return 'FLAC';
-    if (filePath.endsWith('.mp3')) return 'MP3';
-    if (filePath.endsWith('.aac')) return 'AAC';
-    if (filePath.endsWith('.m4a')) return 'M4A';
-    if (filePath.endsWith('.wav')) return 'WAV';
-    if (filePath.endsWith('.ogg')) return 'OGG';
-    return 'UNKNOWN';
-  }
-
-  String _calculateDuration(List<DemoTrack> tracks) {
-    if (tracks.isEmpty) return '0m';
-    
-    int totalSeconds = tracks.fold<int>(0, (sum, track) => sum + track.durationSeconds);
-    final hours = totalSeconds ~/ 3600;
-    final minutes = (totalSeconds % 3600) ~/ 60;
-
-    if (hours > 0) {
-      return '${hours}h ${minutes}m';
+  /// Groups tracks by artist name and returns list of [DemoArtist]
+  List<DemoArtist> buildArtists(List<DemoTrack> tracks) {
+    final byArtist = <String, List<DemoTrack>>{};
+    for (final t in tracks) {
+      byArtist.putIfAbsent(t.artist, () => []).add(t);
     }
-    return '${minutes}m';
+
+    return byArtist.entries.map((e) {
+      final artistTracks = e.value;
+      final albumCount = artistTracks.map((t) => t.album).toSet().length;
+      return DemoArtist(
+        name: e.key,
+        albums: albumCount,
+        tracks: artistTracks.length,
+      );
+    }).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+  }
+
+  Future<void> clearCache() async {
+    await _cache.clearCache();
   }
 }

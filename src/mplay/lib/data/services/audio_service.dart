@@ -1,77 +1,39 @@
+import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 
-/// Service to handle audio playback using just_audio
+/// Wraps just_audio AudioPlayer with a clean interface for the PlayerCubit
 class AudioService {
-  late final AudioPlayer _audioPlayer;
+  AudioService() : _player = AudioPlayer();
 
-  AudioService() {
-    _audioPlayer = AudioPlayer();
-  }
+  final AudioPlayer _player;
 
-  AudioPlayer get audioPlayer => _audioPlayer;
+  Stream<PlayerState> get playerStateStream => _player.playerStateStream;
+  Stream<Duration> get positionStream => _player.positionStream;
+  Stream<Duration?> get durationStream => _player.durationStream;
 
-  Future<void> setUrl(String filePath) async {
+  bool get playing => _player.playing;
+
+  /// Load a file URI or content URI and prepare for playback
+  Future<void> setUri(String uri) async {
     try {
-      await _audioPlayer.setFilePath(filePath);
+      await _player.setAudioSource(AudioSource.uri(Uri.parse(uri)));
     } catch (e) {
-      print('Error setting audio file: $e');
+      print('AudioService: error setting URI $uri: $e');
       rethrow;
     }
   }
 
-  Future<void> play() async {
-    try {
-      await _audioPlayer.play();
-    } catch (e) {
-      print('Error playing audio: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> pause() async {
-    try {
-      await _audioPlayer.pause();
-    } catch (e) {
-      print('Error pausing audio: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> stop() async {
-    try {
-      await _audioPlayer.stop();
-    } catch (e) {
-      print('Error stopping audio: $e');
-      rethrow;
-    }
-  }
+  Future<void> play() async => _player.play();
+  Future<void> pause() async => _player.pause();
+  Future<void> stop() async => _player.stop();
 
   Future<void> seek(Duration position) async {
-    try {
-      await _audioPlayer.seek(position);
-    } catch (e) {
-      print('Error seeking: $e');
-      rethrow;
+    final duration = _player.duration;
+    if (duration != null && position > duration) {
+      position = duration;
     }
+    await _player.seek(position);
   }
 
-  Duration? getCurrentPosition() {
-    return _audioPlayer.position;
-  }
-
-  Duration? getDuration() {
-    return _audioPlayer.duration;
-  }
-
-  bool isPlaying() {
-    return _audioPlayer.playing;
-  }
-
-  Stream<PlayerState> get playerStateStream => _audioPlayer.playerStateStream;
-  Stream<Duration?> get durationStream => _audioPlayer.durationStream;
-  Stream<Duration> get positionStream => _audioPlayer.positionStream;
-
-  Future<void> dispose() async {
-    await _audioPlayer.dispose();
-  }
+  Future<void> dispose() async => _player.dispose();
 }

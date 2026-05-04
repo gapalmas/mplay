@@ -27,6 +27,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _libraryTabs = TabController(length: 4, vsync: this);
+    // Load library when HomeScreen is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<LibraryCubit>().loadLibrary();
+    });
   }
 
   @override
@@ -40,8 +44,46 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return BlocBuilder<LibraryCubit, LibraryState>(
       builder: (context, state) {
         if (state.isLoading) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.library_music_rounded, size: 72),
+                  const SizedBox(height: 24),
+                  const Text('Cargando biblioteca de música...'),
+                  const SizedBox(height: 16),
+                  const CircularProgressIndicator(),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (state.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.music_off_rounded, size: 72,
+                        color: Theme.of(context).colorScheme.error),
+                    const SizedBox(height: 24),
+                    Text(state.error ?? 'Error desconocido',
+                        textAlign: TextAlign.center),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          context.read<LibraryCubit>().loadLibrary(),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
         }
         final tracks = state.tracks;

@@ -1,97 +1,64 @@
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:permission_handler/permission_handler.dart';
 
-/// Service to scan and retrieve audio files from device
+import '../../domain/entities/demo_models.dart';
+
+/// Scans the device music library using Android MediaStore via on_audio_query
 class MusicScanner {
-  final OnAudioQuery _audioQuery = OnAudioQuery();
+  MusicScanner() : _audioQuery = OnAudioQuery();
 
-  /// Request permissions for accessing music files
+  final OnAudioQuery _audioQuery;
+
+  /// Request and check storage permissions
   Future<bool> requestPermissions() async {
-    final status = await Permission.audio.request();
-    return status.isGranted;
+    return _audioQuery.permissionsRequest();
   }
 
-  /// Check if permission is already granted
-  Future<bool> hasPermission() async {
-    return await Permission.audio.isDenied == false;
+  Future<bool> hasPermissions() async {
+    return _audioQuery.permissionsStatus();
   }
 
-  /// Scan all songs on device
-  Future<List<SongModel>> querySongs() async {
-    try {
-      bool permissionGranted = await requestPermissions();
-      if (!permissionGranted) {
-        print('Permission denied for accessing audio files');
-        return [];
-      }
-
-      final songs = await _audioQuery.querySongs(
-        sortType: SongSortType.DATE_ADDED,
-        orderType: OrderType.DESC_OR_GREATER,
-        uriType: UriType.EXTERNAL,
-      );
-
-      print('Found ${songs.length} songs on device');
-      return songs;
-    } catch (e) {
-      print('Error querying songs: $e');
+  /// Scan device for all music tracks, returns list of [DemoTrack]
+  Future<List<DemoTrack>> scanTracks() async {
+    final hasPerm = await requestPermissions();
+    if (!hasPerm) {
+      print('MusicScanner: storage permission denied');
       return [];
     }
+
+    final songs = await _audioQuery.querySongs(
+      sortType: SongSortType.TITLE,
+      orderType: OrderType.ASC_OR_SMALLER,
+      uriType: UriType.EXTERNAL,
+      ignoreCase: true,
+    );
+
+    print('MusicScanner: found ${songs.length} songs on device');
+
+    // Filter out very short clips (< 30s) and non-music
+    final filtered = songs.where((s) {
+      final duration = s.duration ?? 0;
+      return duration >= 30000; // at least 30 seconds
+    }).toList();
+
+    return filtered.map(_songModelToTrack).toList();
   }
 
-  /// Get all albums available
-  Future<List<AlbumModel>> queryAlbums() async {
-    try {
-      final albums = await _audioQuery.queryAlbums(
-        sortType: AlbumSortType.ALBUM,
-        orderType: OrderType.ASC_OR_SMALLER,
-        uriType: UriType.EXTERNAL,
-      );
-      return albums;
-    } catch (e) {
-      print('Error querying albums: $e');
-      return [];
-    }
-  }
+  DemoTrack _songModelToTrack(SongModel song) {
+    final durationMs = song.duration ?? 0;
+    final durationSec = (durationMs / 1000).round();
+    final mins = durationSec ~/ 60;
+    final secs = durationSec % 60;
 
-  /// Get all artists available
-  Future<List<ArtistModel>> queryArtists() async {
-    try {
-      final artists = await _audioQuery.queryArtists(
-        sortType: ArtistSortType.ARTIST,
-        orderType: OrderType.ASC_OR_SMALLER,
-        uriType: UriType.EXTERNAL,
-      );
-      return artists;
-    } catch (e) {
-      print('Error querying artists: $e');
-      return [];
-    }
-  }
-
-  /// Search songs by artist
-  Future<List<SongModel>> searchSongsByArtist(String artist) async {
-    try {
-      final allSongs = await querySongs();
-      return allSongs
-          .where((song) => song.artist?.toLowerCase().contains(artist.toLowerCase()) ?? false)
-          .toList();
-    } catch (e) {
-      print('Error searching songs by artist: $e');
-      return [];
-    }
-  }
-
-  /// Search songs by album
-  Future<List<SongModel>> searchSongsByAlbum(String album) async {
-    try {
-      final allSongs = await querySongs();
-      return allSongs
-          .where((song) => song.album?.toLowerCase().contains(album.toLowerCase()) ?? false)
-          .toList();
-    } catch (e) {
-      print('Error searching songs by album: $e');
-      return [];
-    }
+    return DemoTrack(
+      title: song.title.isNotEmpty ? song.title : 'Unknown Title',
+      artist: (song.artist?.isNotEmpty == true) ? song.artist! : 'Unknown Artist',
+      album: (song.album?.isNotEmpty == true) ? song.album! : 'Unknown Album',
+      durationLabel: '$mins:${secs.toString().padLeft(2, '0')}',
+      durationSeconds: durationSec,
+      format: song.fileExtension.toUpperCase().isNotEmpty ? song.fileExtension.toUpperCase() : 'MP3',
+      bitrateKbps: 0,
+      uri: song.uri,
+      filePath: song.data,
+    );
   }
 }
