@@ -32,6 +32,7 @@ class TrackArtwork extends StatelessWidget {
           artworkWidth: size,
           artworkHeight: size,
           artworkFit: BoxFit.cover,
+          keepOldArtwork: true,
           nullArtworkWidget: _folderCoverOrFallback(context),
         ),
       );
@@ -88,6 +89,7 @@ class TrackArtwork extends StatelessWidget {
             width: size,
             height: size,
             fit: BoxFit.cover,
+            gaplessPlayback: true,
             errorBuilder: (context, error, stackTrace) => _fallback(context),
           ),
         );
