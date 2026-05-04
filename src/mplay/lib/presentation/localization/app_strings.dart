@@ -73,4 +73,33 @@ class AppStrings {
   String get artists => isSpanish ? 'Artistas' : 'Artists';
   String get playlists => isSpanish ? 'Playlists' : 'Playlists';
   String get playlist => isSpanish ? 'Playlist' : 'Playlist';
+    String get export => isSpanish ? 'Exportar' : 'Export';
+    String get import => isSpanish ? 'Restaurar' : 'Restore';
+    String get history => isSpanish ? 'Historial' : 'History';
+    String get exportBackup =>
+      isSpanish ? 'Crear copia de seguridad' : 'Create backup';
+    String get includePlaylists =>
+      isSpanish ? 'Playlists personalizadas' : 'Custom playlists';
+    String get includeSettings =>
+      isSpanish ? 'Configuración de la app' : 'App settings';
+    String get noBackups => isSpanish
+      ? 'Todavía no hay copias guardadas.'
+      : 'There are no saved backups yet.';
+    String get restoreBackup =>
+      isSpanish ? 'Restaurar backup' : 'Restore backup';
+    String get deleteBackup => isSpanish ? 'Eliminar backup' : 'Delete backup';
+    String get backupCreated =>
+      isSpanish ? 'Backup creado correctamente.' : 'Backup created successfully.';
+    String get backupRestored => isSpanish
+      ? 'Backup restaurado correctamente.'
+      : 'Backup restored successfully.';
+    String get backupDeleted =>
+      isSpanish ? 'Backup eliminado.' : 'Backup deleted.';
+    String get restoreWarning => isSpanish
+      ? 'Se reemplazarán las playlists y ajustes incluidos en la copia seleccionada.'
+      : 'Playlists and settings included in the selected backup will be replaced.';
+    String get cancel => isSpanish ? 'Cancelar' : 'Cancel';
+    String get restore => isSpanish ? 'Restaurar' : 'Restore';
+    String get delete => isSpanish ? 'Eliminar' : 'Delete';
+    String get bytesLabel => 'bytes';
 }

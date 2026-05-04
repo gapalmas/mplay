@@ -109,6 +109,14 @@ class PlaylistService {
     await _saveRawPlaylists(list);
   }
 
+  Future<List<Map<String, dynamic>>> exportRawPlaylists() async {
+    return _loadRawPlaylists();
+  }
+
+  Future<void> importRawPlaylists(List<Map<String, dynamic>> playlists) async {
+    await _saveRawPlaylists(playlists);
+  }
+
   Future<List<Map<String, dynamic>>> _loadRawPlaylists() async {
     final raw = _box.get(_playlistsKey) as String?;
     if (raw == null || raw.isEmpty) return [];
