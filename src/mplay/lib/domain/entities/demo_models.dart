@@ -7,6 +7,8 @@ class DemoTrack {
     required this.durationSeconds,
     required this.format,
     required this.bitrateKbps,
+    this.filePath,
+    this.uri,
   });
 
   final String title;
@@ -16,6 +18,8 @@ class DemoTrack {
   final int durationSeconds;
   final String format;
   final int bitrateKbps;
+  final String? filePath; // Local file path
+  final String? uri; // Content URI for Android
 }
 
 class DemoAlbum {

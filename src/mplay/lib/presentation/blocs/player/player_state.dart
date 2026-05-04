@@ -6,16 +6,22 @@ class PlayerState {
     this.queue = const [],
     this.isPlaying = false,
     this.positionSeconds = 0,
+    this.durationSeconds,
   });
 
   final DemoTrack? currentTrack;
   final List<DemoTrack> queue;
   final bool isPlaying;
   final double positionSeconds;
+  final double? durationSeconds;
 
   bool get hasTrack => currentTrack != null;
 
   double get maxPositionSeconds {
+    // Use actual duration if available, otherwise use track duration
+    if (durationSeconds != null && durationSeconds! > 0) {
+      return durationSeconds!;
+    }
     if (currentTrack == null) {
       return 1;
     }
@@ -29,11 +35,19 @@ class PlayerState {
     return '$mins:${secs.toString().padLeft(2, '0')}';
   }
 
+  String get durationLabel {
+    final total = maxPositionSeconds.floor();
+    final mins = total ~/ 60;
+    final secs = total % 60;
+    return '$mins:${secs.toString().padLeft(2, '0')}';
+  }
+
   PlayerState copyWith({
     DemoTrack? currentTrack,
     List<DemoTrack>? queue,
     bool? isPlaying,
     double? positionSeconds,
+    double? durationSeconds,
     bool clearTrack = false,
   }) {
     return PlayerState(
@@ -41,6 +55,7 @@ class PlayerState {
       queue: queue ?? this.queue,
       isPlaying: isPlaying ?? this.isPlaying,
       positionSeconds: positionSeconds ?? this.positionSeconds,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
     );
   }
 }
