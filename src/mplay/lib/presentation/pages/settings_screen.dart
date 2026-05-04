@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../blocs/app_settings/app_settings_cubit.dart';
 import '../blocs/app_settings/app_settings_state.dart';
+import '../localization/app_strings.dart';
 import '../widgets/player_mini_player_bar.dart';
 import 'backup_restore_screen.dart';
 
@@ -25,17 +26,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return BlocBuilder<AppSettingsCubit, AppSettingsState>(
       builder: (context, settings) {
         return Scaffold(
-          appBar: AppBar(title: const Text('Ajustes')),
+          appBar: AppBar(title: Text(strings.settingsTitle)),
           body: settings.isLoading
               ? const Center(child: CircularProgressIndicator())
               : ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
                     Text(
-                      'Apariencia',
+                      strings.appearance,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Card(
@@ -47,19 +50,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           }
                           context.read<AppSettingsCubit>().setThemeMode(value);
                         },
-                        child: const Column(
+                        child: Column(
                           children: [
                             RadioListTile<ThemeMode>(
                               value: ThemeMode.system,
-                              title: Text('Seguir sistema'),
+                              title: Text(strings.followSystem),
                             ),
                             RadioListTile<ThemeMode>(
                               value: ThemeMode.light,
-                              title: Text('Claro'),
+                              title: Text(strings.light),
                             ),
                             RadioListTile<ThemeMode>(
                               value: ThemeMode.dark,
-                              title: Text('Oscuro'),
+                              title: Text(strings.dark),
                             ),
                           ],
                         ),
@@ -67,7 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Reproducción',
+                      strings.playback,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Card(
@@ -78,13 +81,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onChanged: context
                                 .read<AppSettingsCubit>()
                                 .setSkipSilence,
-                            title: const Text('Omitir silencios'),
-                            subtitle: const Text(
-                              'Se aplica durante la reproducción en Android.',
-                            ),
+                            title: Text(strings.skipSilence),
+                            subtitle: Text(strings.skipSilenceDescription),
                           ),
                           ListTile(
-                            title: const Text('Volumen predeterminado'),
+                            title: Text(strings.defaultVolume),
                             subtitle: Text(
                               '${(settings.defaultVolume * 100).round()}%',
                             ),
@@ -102,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           ListTile(
-                            title: const Text('Repetición predeterminada'),
+                            title: Text(strings.defaultRepeat),
                             trailing: DropdownButton<DefaultRepeatMode>(
                               value: settings.defaultRepeatMode,
                               onChanged: (value) {
@@ -113,18 +114,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     .read<AppSettingsCubit>()
                                     .setDefaultRepeatMode(value);
                               },
-                              items: const [
+                              items: [
                                 DropdownMenuItem(
                                   value: DefaultRepeatMode.off,
-                                  child: Text('Desactivada'),
+                                  child: Text(strings.repeatDisabled),
                                 ),
                                 DropdownMenuItem(
                                   value: DefaultRepeatMode.all,
-                                  child: Text('Repetir cola'),
+                                  child: Text(strings.repeatQueue),
                                 ),
                                 DropdownMenuItem(
                                   value: DefaultRepeatMode.one,
-                                  child: Text('Repetir canción'),
+                                  child: Text(strings.repeatSong),
                                 ),
                               ],
                             ),
@@ -134,13 +135,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Idioma',
+                      strings.languageSection,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Card(
                       child: ListTile(
-                        title: const Text('Idioma'),
-                        subtitle: const Text('Se aplicará en toda la app.'),
+                        title: Text(strings.language),
+                        subtitle: Text(strings.languageDescription),
                         trailing: DropdownButton<AppLanguage>(
                           value: settings.language,
                           onChanged: (value) {
@@ -149,18 +150,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             }
                             context.read<AppSettingsCubit>().setLanguage(value);
                           },
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: AppLanguage.system,
-                              child: Text('Seguir sistema'),
+                              child: Text(strings.followSystem),
                             ),
                             DropdownMenuItem(
                               value: AppLanguage.spanish,
-                              child: Text('Español'),
+                              child: Text(strings.spanish),
                             ),
                             DropdownMenuItem(
                               value: AppLanguage.english,
-                              child: Text('English'),
+                              child: Text(strings.english),
                             ),
                           ],
                         ),
@@ -175,7 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         );
                       },
-                      child: const Text('Copia de seguridad y restauración'),
+                      child: Text(strings.backupAndRestore),
                     ),
                     const SizedBox(height: 12),
                     FutureBuilder<PackageInfo>(

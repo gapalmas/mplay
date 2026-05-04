@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_bloc: ^8.1.6
   just_audio: ^0.9.46
   on_audio_query: ^2.9.0

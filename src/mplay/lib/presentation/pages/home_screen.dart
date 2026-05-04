@@ -5,6 +5,7 @@ import '../../domain/entities/demo_models.dart';
 import '../blocs/library/library_cubit.dart';
 import '../blocs/library/library_state.dart';
 import '../blocs/player/player_cubit.dart';
+import '../localization/app_strings.dart';
 import 'album_detail_screen.dart';
 import 'artist_detail_screen.dart';
 import 'backup_restore_screen.dart';
@@ -43,6 +44,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return BlocBuilder<LibraryCubit, LibraryState>(
       builder: (context, state) {
         if (state.isLoading) {
@@ -53,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   const Icon(Icons.library_music_rounded, size: 72),
                   const SizedBox(height: 24),
-                  const Text('Cargando biblioteca de música...'),
+                  Text(strings.loadingLibrary),
                   const SizedBox(height: 16),
                   const CircularProgressIndicator(),
                 ],
@@ -80,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       onPressed: () =>
                           context.read<LibraryCubit>().loadLibrary(),
                       icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Reintentar'),
+                      label: Text(strings.retry),
                     ),
                   ],
                 ),
@@ -95,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('mplay'),
+            title: Text(strings.appTitle),
             actions: [
               IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
               PopupMenuButton<_TopMenu>(
@@ -117,26 +120,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       );
                   }
                 },
-                itemBuilder: (context) => const [
+                itemBuilder: (context) => [
                   PopupMenuItem(
                     value: _TopMenu.equalizer,
-                    child: Text('Ecualizador'),
+                    child: Text(strings.equalizer),
                   ),
-                  PopupMenuItem(value: _TopMenu.settings, child: Text('Ajustes')),
+                  PopupMenuItem(
+                    value: _TopMenu.settings,
+                    child: Text(strings.settingsMenu),
+                  ),
                   PopupMenuItem(
                     value: _TopMenu.backup,
-                    child: Text('Backup / Restore'),
+                    child: Text(strings.backupMenu),
                   ),
                 ],
               ),
             ],
             bottom: TabBar(
               controller: _libraryTabs,
-              tabs: const [
-                Tab(text: 'Canciones'),
-                Tab(text: 'Álbumes'),
-                Tab(text: 'Artistas'),
-                Tab(text: 'Playlists'),
+              tabs: [
+                Tab(text: strings.songs),
+                Tab(text: strings.albums),
+                Tab(text: strings.artists),
+                Tab(text: strings.playlists),
               ],
             ),
           ),
@@ -311,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               );
             },
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Playlist'),
+            label: Text(strings.playlist),
           ),
         );
       },

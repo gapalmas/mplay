@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'presentation/blocs/app_settings/app_settings_cubit.dart';
 import 'presentation/blocs/app_settings/app_settings_state.dart';
@@ -24,6 +25,9 @@ class MPlayApp extends StatelessWidget {
             title: 'mplay',
             debugShowCheckedModeBanner: false,
             themeMode: settings.themeMode,
+            locale: _localeForLanguage(settings.language),
+            supportedLocales: const [Locale('es'), Locale('en')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
             theme: _theme(Brightness.light),
             darkTheme: _theme(Brightness.dark),
             home: const HomeScreen(),
@@ -49,5 +53,13 @@ class MPlayApp extends StatelessWidget {
       ),
       appBarTheme: const AppBarTheme(centerTitle: false),
     );
+  }
+
+  Locale? _localeForLanguage(AppLanguage language) {
+    return switch (language) {
+      AppLanguage.spanish => const Locale('es'),
+      AppLanguage.english => const Locale('en'),
+      AppLanguage.system => null,
+    };
   }
 }
