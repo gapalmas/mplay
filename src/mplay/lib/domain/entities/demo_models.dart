@@ -22,6 +22,14 @@ class DemoTrack {
   final int? songId;
   final String? filePath; // Local file path
   final String? uri; // Content URI for Android
+
+  String get nowPlayingTickerLabel {
+    final parts = <String>[title, artist, album, format];
+    if (bitrateKbps > 0) {
+      parts.add('$bitrateKbps kbps');
+    }
+    return parts.where((part) => part.trim().isNotEmpty).join('  •  ');
+  }
 }
 
 class DemoAlbum {
