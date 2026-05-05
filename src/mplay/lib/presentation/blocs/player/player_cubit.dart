@@ -11,8 +11,8 @@ import 'player_state.dart' as player_state;
 
 class PlayerCubit extends Cubit<player_state.PlayerState> {
   PlayerCubit(this._appSettingsCubit)
-      : _audioService = AudioService(),
-        super(const player_state.PlayerState()) {
+    : _audioService = AudioService(),
+      super(const player_state.PlayerState()) {
     _subscribeToAudio();
     _settingsSub = _appSettingsCubit.stream.listen(_applyPlaybackSettings);
     _applyPlaybackSettings(_appSettingsCubit.state);
@@ -25,6 +25,7 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
   StreamSubscription? _stateSub;
   StreamSubscription? _sessionIdSub;
   StreamSubscription? _volumeSub;
+  StreamSubscription? _currentIndexSub;
   StreamSubscription? _settingsSub;
   bool _isHandlingCompletion = false;
   List<DemoTrack> _baseQueue = const [];
@@ -41,7 +42,8 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     });
 
     _stateSub = _audioService.playerStateStream.listen((ps) {
-      final isPlaying = ps.playing &&
+      final isPlaying =
+          ps.playing &&
           ps.processingState != ja.ProcessingState.completed &&
           ps.processingState != ja.ProcessingState.idle;
       emit(state.copyWith(isPlaying: isPlaying));
@@ -60,6 +62,20 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     _volumeSub = _audioService.volumeStream.listen((volume) {
       emit(state.copyWith(volume: volume));
     });
+
+    _currentIndexSub = _audioService.currentIndexStream.listen((index) {
+      if (index == null || index < 0 || index >= state.queue.length) {
+        return;
+      }
+
+      final track = state.queue[index];
+      if (state.currentTrack != null &&
+          _sameTrack(state.currentTrack!, track)) {
+        return;
+      }
+
+      emit(state.copyWith(currentTrack: track, positionSeconds: 0));
+    });
   }
 
   Future<void> playTrack(
@@ -76,24 +92,27 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
           ? List<DemoTrack>.from(state.queue)
           : List<DemoTrack>.from(queue);
 
-        final effectiveQueue = (!keepBaseQueue && state.isShuffleEnabled)
+      final effectiveQueue = (!keepBaseQueue && state.isShuffleEnabled)
           ? _buildShuffledQueue(sourceQueue, track)
           : sourceQueue;
 
-      emit(state.copyWith(
-        currentTrack: track,
-        queue: effectiveQueue,
-        isPlaying: false,
-        positionSeconds: 0,
-      ));
+      emit(
+        state.copyWith(
+          currentTrack: track,
+          queue: effectiveQueue,
+          isPlaying: false,
+          positionSeconds: 0,
+        ),
+      );
 
-      final uri = track.uri ?? track.filePath;
-      if (uri == null) {
-        print('PlayerCubit: no URI for track ${track.title}');
-        return;
-      }
+      final targetIndex = effectiveQueue.indexWhere(
+        (item) => _sameTrack(item, track),
+      );
 
-      await _audioService.setUri(uri);
+      await _audioService.setQueue(
+        effectiveQueue,
+        initialIndex: targetIndex >= 0 ? targetIndex : 0,
+      );
       await _audioService.play();
     } catch (e) {
       print('PlayerCubit: error playing ${track.title}: $e');
@@ -115,56 +134,38 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
 
   Future<void> seek(double positionSeconds) async {
     try {
-      final clamped = positionSeconds.clamp(0, state.maxPositionSeconds).toDouble();
-      await _audioService.seek(Duration(milliseconds: (clamped * 1000).round()));
+      final clamped = positionSeconds
+          .clamp(0, state.maxPositionSeconds)
+          .toDouble();
+      await _audioService.seek(
+        Duration(milliseconds: (clamped * 1000).round()),
+      );
     } catch (e) {
       print('PlayerCubit: error seeking: $e');
     }
   }
 
   Future<void> skipNext() async {
-    if (state.queue.isEmpty || state.currentTrack == null) return;
-    final idx = state.queue.indexWhere(
-      (track) => _sameTrack(track, state.currentTrack!),
-    );
-    if (idx >= 0 && idx < state.queue.length - 1) {
-      await playTrack(
-        state.queue[idx + 1],
-        queue: state.queue,
-        keepBaseQueue: true,
-      );
-      return;
-    }
-
-    if (state.repeatMode == player_state.RepeatMode.all && state.queue.isNotEmpty) {
-      await playTrack(
-        state.queue.first,
-        queue: state.queue,
-        keepBaseQueue: true,
-      );
+    if (state.queue.isEmpty) return;
+    try {
+      await _audioService.seekToNext();
+      if (!state.isPlaying) {
+        await _audioService.play();
+      }
+    } catch (e) {
+      print('PlayerCubit: error skipping next: $e');
     }
   }
 
   Future<void> skipPrevious() async {
-    if (state.queue.isEmpty || state.currentTrack == null) return;
-    final idx = state.queue.indexWhere(
-      (track) => _sameTrack(track, state.currentTrack!),
-    );
-    if (idx > 0) {
-      await playTrack(
-        state.queue[idx - 1],
-        queue: state.queue,
-        keepBaseQueue: true,
-      );
-      return;
-    }
-
-    if (state.repeatMode == player_state.RepeatMode.all && state.queue.isNotEmpty) {
-      await playTrack(
-        state.queue.last,
-        queue: state.queue,
-        keepBaseQueue: true,
-      );
+    if (state.queue.isEmpty) return;
+    try {
+      await _audioService.seekToPrevious();
+      if (!state.isPlaying) {
+        await _audioService.play();
+      }
+    } catch (e) {
+      print('PlayerCubit: error skipping previous: $e');
     }
   }
 
@@ -172,7 +173,15 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     if (_isHandlingCompletion) return;
     _isHandlingCompletion = true;
     try {
-      if (state.repeatMode == player_state.RepeatMode.one && state.currentTrack != null) {
+      if (state.repeatMode == player_state.RepeatMode.one &&
+          state.currentTrack != null) {
+        await _audioService.seek(Duration.zero);
+        await _audioService.play();
+        return;
+      }
+
+      if (state.repeatMode == player_state.RepeatMode.all &&
+          state.queue.isNotEmpty) {
         await _audioService.seek(Duration.zero);
         await _audioService.play();
         return;
@@ -191,18 +200,14 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
       final current = state.currentTrack;
       final source = _baseQueue.isNotEmpty ? _baseQueue : state.queue;
       final shuffled = _buildShuffledQueue(source, current);
-      emit(state.copyWith(
-        isShuffleEnabled: true,
-        queue: shuffled,
-      ));
+      emit(state.copyWith(isShuffleEnabled: true, queue: shuffled));
       return;
     }
 
-    final restored = _baseQueue.isNotEmpty ? List<DemoTrack>.from(_baseQueue) : List<DemoTrack>.from(state.queue);
-    emit(state.copyWith(
-      isShuffleEnabled: false,
-      queue: restored,
-    ));
+    final restored = _baseQueue.isNotEmpty
+        ? List<DemoTrack>.from(_baseQueue)
+        : List<DemoTrack>.from(state.queue);
+    emit(state.copyWith(isShuffleEnabled: false, queue: restored));
   }
 
   Future<void> cycleRepeatMode() async {
@@ -252,14 +257,19 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     return a.title == b.title && a.artist == b.artist && a.album == b.album;
   }
 
-  List<DemoTrack> _buildShuffledQueue(List<DemoTrack> queue, DemoTrack? currentTrack) {
+  List<DemoTrack> _buildShuffledQueue(
+    List<DemoTrack> queue,
+    DemoTrack? currentTrack,
+  ) {
     if (queue.isEmpty) return const [];
 
     final working = List<DemoTrack>.from(queue);
     DemoTrack? current;
 
     if (currentTrack != null) {
-      final idx = working.indexWhere((track) => _sameTrack(track, currentTrack));
+      final idx = working.indexWhere(
+        (track) => _sameTrack(track, currentTrack),
+      );
       if (idx >= 0) {
         current = working.removeAt(idx);
       }
@@ -297,6 +307,7 @@ class PlayerCubit extends Cubit<player_state.PlayerState> {
     await _stateSub?.cancel();
     await _sessionIdSub?.cancel();
     await _volumeSub?.cancel();
+    await _currentIndexSub?.cancel();
     await _settingsSub?.cancel();
     await _audioService.dispose();
     return super.close();

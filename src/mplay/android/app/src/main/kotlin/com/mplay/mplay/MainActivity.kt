@@ -2,11 +2,11 @@ package com.mplay.mplay
 
 import android.content.Intent
 import android.media.audiofx.AudioEffect
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+class MainActivity : AudioServiceActivity() {
 	private val channelName = "mplay/audio_fx"
 
 	override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
