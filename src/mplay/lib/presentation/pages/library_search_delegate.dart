@@ -75,7 +75,8 @@ class LibrarySearchDelegate extends SearchDelegate<void> {
     final filteredArtists = _filterArtists(normalized, previewMode);
     final filteredPlaylists = _filterPlaylists(normalized, previewMode);
 
-    final hasAnyResults = filteredTracks.isNotEmpty ||
+    final hasAnyResults =
+        filteredTracks.isNotEmpty ||
         filteredAlbums.isNotEmpty ||
         filteredArtists.isNotEmpty ||
         filteredPlaylists.isNotEmpty;
@@ -95,107 +96,116 @@ class LibrarySearchDelegate extends SearchDelegate<void> {
           _ResultSection(
             title: songsLabel,
             children: filteredTracks
-                .map((track) => ListTile(
-                      leading: TrackArtwork(
-                        track: track,
-                        size: 40,
-                        radius: 20,
-                        iconSize: 20,
-                      ),
-                      title: Text(track.title),
-                      subtitle: Text(track.artist),
-                      trailing: Text(track.durationLabel),
-                      onTap: () {
-                        final navigator = Navigator.of(context);
-                        context.read<PlayerCubit>().playTrack(track, queue: tracks);
-                        close(context, null);
-                        navigator.push(
-                          MaterialPageRoute(
-                            builder: (_) => const NowPlayingScreen(),
-                          ),
-                        );
-                      },
-                    ))
+                .map(
+                  (track) => ListTile(
+                    leading: TrackArtwork(
+                      track: track,
+                      size: 40,
+                      radius: 20,
+                      iconSize: 20,
+                    ),
+                    title: Text(track.title),
+                    subtitle: Text(track.artist),
+                    trailing: Text(track.durationLabel),
+                    onTap: () {
+                      final navigator = Navigator.of(context);
+                      context.read<PlayerCubit>().playTrack(
+                        track,
+                        queue: tracks,
+                      );
+                      close(context, null);
+                      navigator.push(
+                        MaterialPageRoute(
+                          builder: (_) => const NowPlayingScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                )
                 .toList(),
           ),
         if (filteredAlbums.isNotEmpty)
           _ResultSection(
             title: albumsLabel,
             children: filteredAlbums
-                .map((album) => ListTile(
-                      leading: TrackArtwork(
-                        track: album.tracks.first,
-                        size: 40,
-                        radius: 12,
-                        iconSize: 20,
-                      ),
-                      title: Text(album.name),
-                      subtitle: Text(album.artist),
-                      onTap: () {
-                        final navigator = Navigator.of(context);
-                        close(context, null);
-                        navigator.push(
-                          MaterialPageRoute(
-                            builder: (_) => AlbumDetailScreen(album: album),
-                          ),
-                        );
-                      },
-                    ))
+                .map(
+                  (album) => ListTile(
+                    leading: TrackArtwork(
+                      track: album.tracks.first,
+                      size: 40,
+                      radius: 6,
+                      iconSize: 20,
+                      showBackground: true,
+                    ),
+                    title: Text(album.name),
+                    subtitle: Text(album.artist),
+                    onTap: () {
+                      final navigator = Navigator.of(context);
+                      close(context, null);
+                      navigator.push(
+                        MaterialPageRoute(
+                          builder: (_) => AlbumDetailScreen(album: album),
+                        ),
+                      );
+                    },
+                  ),
+                )
                 .toList(),
           ),
         if (filteredArtists.isNotEmpty)
           _ResultSection(
             title: artistsLabel,
             children: filteredArtists
-                .map((artist) => ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.person_rounded),
-                      ),
-                      title: Text(artist.name),
-                      subtitle: Text(
-                        '${artist.albums} • ${artist.tracks}',
-                      ),
-                      onTap: () {
-                        final navigator = Navigator.of(context);
-                        close(context, null);
-                        navigator.push(
-                          MaterialPageRoute(
-                            builder: (_) => ArtistDetailScreen(artist: artist),
-                          ),
-                        );
-                      },
-                    ))
+                .map(
+                  (artist) => ListTile(
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.person_rounded),
+                    ),
+                    title: Text(artist.name),
+                    subtitle: Text('${artist.albums} • ${artist.tracks}'),
+                    onTap: () {
+                      final navigator = Navigator.of(context);
+                      close(context, null);
+                      navigator.push(
+                        MaterialPageRoute(
+                          builder: (_) => ArtistDetailScreen(artist: artist),
+                        ),
+                      );
+                    },
+                  ),
+                )
                 .toList(),
           ),
         if (filteredPlaylists.isNotEmpty)
           _ResultSection(
             title: playlistsLabel,
             children: filteredPlaylists
-                .map((playlist) => ListTile(
-                      leading: playlist.tracks.isNotEmpty
-                          ? TrackArtwork(
-                              track: playlist.tracks.first,
-                              size: 40,
-                              radius: 20,
-                              iconSize: 20,
-                            )
-                          : const CircleAvatar(
-                              child: Icon(Icons.queue_music_rounded),
-                            ),
-                      title: Text(playlist.name),
-                      subtitle: Text('${playlist.trackCount}'),
-                      onTap: () {
-                        final navigator = Navigator.of(context);
-                        close(context, null);
-                        navigator.push(
-                          MaterialPageRoute(
-                            builder: (_) => PlaylistDetailScreen(
-                              playlistName: playlist.name,
-                            ),
+                .map(
+                  (playlist) => ListTile(
+                    leading: playlist.tracks.isNotEmpty
+                        ? TrackArtwork(
+                            track: playlist.tracks.first,
+                            size: 40,
+                            radius: 20,
+                            iconSize: 20,
+                          )
+                        : const CircleAvatar(
+                            child: Icon(Icons.queue_music_rounded),
                           ),
-                        );
-                      },
-                    ))
+                    title: Text(playlist.name),
+                    subtitle: Text('${playlist.trackCount}'),
+                    onTap: () {
+                      final navigator = Navigator.of(context);
+                      close(context, null);
+                      navigator.push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              PlaylistDetailScreen(playlistName: playlist.name),
+                        ),
+                      );
+                    },
+                  ),
+                )
                 .toList(),
           ),
       ],
@@ -206,10 +216,11 @@ class LibrarySearchDelegate extends SearchDelegate<void> {
     final source = normalized.isEmpty
         ? tracks.take(8).toList()
         : tracks.where(
-            (track) => _matchesAny(
-              normalized,
-              [track.title, track.artist, track.album],
-            ),
+            (track) => _matchesAny(normalized, [
+              track.title,
+              track.artist,
+              track.album,
+            ]),
           );
     return source.toList();
   }
@@ -233,7 +244,9 @@ class LibrarySearchDelegate extends SearchDelegate<void> {
   List<DemoPlaylist> _filterPlaylists(String normalized, bool previewMode) {
     final source = normalized.isEmpty
         ? playlists.take(6).toList()
-        : playlists.where((playlist) => _matchesAny(normalized, [playlist.name]));
+        : playlists.where(
+            (playlist) => _matchesAny(normalized, [playlist.name]),
+          );
     return source.toList();
   }
 
@@ -243,10 +256,7 @@ class LibrarySearchDelegate extends SearchDelegate<void> {
 }
 
 class _ResultSection extends StatelessWidget {
-  const _ResultSection({
-    required this.title,
-    required this.children,
-  });
+  const _ResultSection({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
@@ -260,10 +270,7 @@ class _ResultSection extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
           ),
           ...children,
         ],

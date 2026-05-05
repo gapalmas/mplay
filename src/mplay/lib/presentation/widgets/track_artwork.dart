@@ -12,6 +12,7 @@ class TrackArtwork extends StatelessWidget {
     this.size = 48,
     this.radius = 10,
     this.iconSize = 24,
+    this.showBackground = false,
     this.querySize,
     this.queryQuality = 100,
     this.artworkFilterQuality = FilterQuality.high,
@@ -21,6 +22,7 @@ class TrackArtwork extends StatelessWidget {
   final double size;
   final double radius;
   final double iconSize;
+  final bool showBackground;
   final int? querySize;
   final int queryQuality;
   final FilterQuality artworkFilterQuality;
@@ -32,17 +34,23 @@ class TrackArtwork extends StatelessWidget {
     if (track.songId != null && track.songId! > 0) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(radius),
-        child: QueryArtworkWidget(
-          id: track.songId!,
-          type: ArtworkType.AUDIO,
-          size: querySize ?? _recommendedQuerySize(size),
-          quality: queryQuality,
-          artworkQuality: artworkFilterQuality,
-          artworkWidth: size,
-          artworkHeight: size,
-          artworkFit: BoxFit.cover,
-          keepOldArtwork: true,
-          nullArtworkWidget: _folderCoverOrFallback(context),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: showBackground ? _coverDecoration(context) : null,
+          child: QueryArtworkWidget(
+            id: track.songId!,
+            type: ArtworkType.AUDIO,
+            size: querySize ?? _recommendedQuerySize(size),
+            quality: queryQuality,
+            artworkBorder: BorderRadius.circular(radius),
+            artworkQuality: artworkFilterQuality,
+            artworkWidth: size,
+            artworkHeight: size,
+            artworkFit: BoxFit.cover,
+            keepOldArtwork: true,
+            nullArtworkWidget: _folderCoverOrFallback(context),
+          ),
         ),
       );
     }
@@ -93,20 +101,37 @@ class TrackArtwork extends StatelessWidget {
       if (file.existsSync()) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(radius),
-          child: Image.file(
-            file,
+          child: Container(
             width: size,
             height: size,
-            fit: BoxFit.cover,
-            filterQuality: artworkFilterQuality,
-            gaplessPlayback: true,
-            errorBuilder: (context, error, stackTrace) => _fallback(context),
+            decoration: showBackground ? _coverDecoration(context) : null,
+            child: Image.file(
+              file,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              filterQuality: artworkFilterQuality,
+              gaplessPlayback: true,
+              errorBuilder: (context, error, stackTrace) => _fallback(context),
+            ),
           ),
         );
       }
     }
 
     return _fallback(context);
+  }
+
+  BoxDecoration _coverDecoration(BuildContext context) {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(radius),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      border: Border.all(
+        color: Theme.of(
+          context,
+        ).colorScheme.outlineVariant.withValues(alpha: 0.55),
+      ),
+    );
   }
 
   int _recommendedQuerySize(double displaySize) {

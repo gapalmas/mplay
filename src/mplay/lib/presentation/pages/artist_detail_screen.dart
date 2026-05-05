@@ -19,13 +19,20 @@ class ArtistDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<LibraryCubit, LibraryState>(
       builder: (context, libraryState) {
-        // Filter tracks and albums from the real library by artist name
         final artistTracks = libraryState.tracks
             .where((t) => t.artist == artist.name)
             .toList();
         final artistAlbums = libraryState.albums
             .where((a) => a.artist == artist.name)
             .toList();
+        final artistMetadata = _buildArtistMetadata(
+          albumCount: artistAlbums.length,
+          trackCount: artistTracks.length,
+          totalSeconds: artistTracks.fold(
+            0,
+            (sum, track) => sum + track.durationSeconds,
+          ),
+        );
 
         return Scaffold(
           appBar: AppBar(title: const Text('Artista')),
@@ -35,53 +42,76 @@ class ArtistDetailScreen extends StatelessWidget {
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(14),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 36,
-                        child: Icon(Icons.person_rounded, size: 36),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              artist.name,
-                              style: Theme.of(context).textTheme.titleLarge,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final avatarRadius = constraints.maxWidth < 360
+                          ? 30.0
+                          : 36.0;
+
+                      return Column(
+                        children: [
+                          CircleAvatar(
+                            radius: avatarRadius,
+                            child: Icon(
+                              Icons.person_rounded,
+                              size: avatarRadius,
                             ),
-                            Text('${artistAlbums.length} álbumes • ${artistTracks.length} canciones'),
-                            const SizedBox(height: 8),
-                            Row(
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            artist.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            artistMetadata,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 FilledButton.icon(
-                                  onPressed: artistTracks.isEmpty ? null : () {
-                                    context.read<PlayerCubit>().playTrack(
-                                      artistTracks.first,
-                                      queue: artistTracks,
-                                    );
-                                  },
+                                  onPressed: artistTracks.isEmpty
+                                      ? null
+                                      : () {
+                                          context.read<PlayerCubit>().playTrack(
+                                            artistTracks.first,
+                                            queue: artistTracks,
+                                          );
+                                        },
                                   icon: const Icon(Icons.play_arrow_rounded),
                                   label: const Text('Reproducir'),
                                 ),
                                 const SizedBox(width: 8),
                                 OutlinedButton.icon(
-                                  onPressed: artistTracks.isEmpty ? null : () {
-                                    final shuffled = List<DemoTrack>.from(artistTracks)..shuffle();
-                                    context.read<PlayerCubit>().playTrack(
-                                      shuffled.first,
-                                      queue: shuffled,
-                                    );
-                                  },
+                                  onPressed: artistTracks.isEmpty
+                                      ? null
+                                      : () {
+                                          final shuffled = List<DemoTrack>.from(
+                                            artistTracks,
+                                          )..shuffle();
+                                          context.read<PlayerCubit>().playTrack(
+                                            shuffled.first,
+                                            queue: shuffled,
+                                          );
+                                        },
                                   icon: const Icon(Icons.shuffle_rounded),
                                   label: const Text('Aleatorio'),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -105,7 +135,8 @@ class ArtistDetailScreen extends StatelessWidget {
                             onTap: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => AlbumDetailScreen(album: album),
+                                  builder: (_) =>
+                                      AlbumDetailScreen(album: album),
                                 ),
                               );
                             },
@@ -114,11 +145,17 @@ class ArtistDetailScreen extends StatelessWidget {
                               child: Column(
                                 children: [
                                   Expanded(
-                                    child: TrackArtwork(
-                                      track: album.tracks.first,
-                                      size: 120,
-                                      radius: 10,
-                                      iconSize: 32,
+                                    child: Center(
+                                      child: SizedBox.square(
+                                        dimension: 100,
+                                        child: TrackArtwork(
+                                          track: album.tracks.first,
+                                          size: 100,
+                                          radius: 6,
+                                          iconSize: 32,
+                                          showBackground: true,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -144,32 +181,34 @@ class ArtistDetailScreen extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                ...artistTracks.take(5).map(
-                  (track) => Card(
-                    child: ListTile(
-                      leading: TrackArtwork(
-                        track: track,
-                        size: 40,
-                        radius: 20,
-                        iconSize: 20,
-                      ),
-                      title: Text(track.title),
-                      subtitle: Text(track.album),
-                      trailing: Text(track.durationLabel),
-                      onTap: () {
-                        context.read<PlayerCubit>().playTrack(
-                          track,
-                          queue: artistTracks,
-                        );
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const NowPlayingScreen(),
+                ...artistTracks
+                    .take(5)
+                    .map(
+                      (track) => Card(
+                        child: ListTile(
+                          leading: TrackArtwork(
+                            track: track,
+                            size: 40,
+                            radius: 20,
+                            iconSize: 20,
                           ),
-                        );
-                      },
+                          title: Text(track.title),
+                          subtitle: Text(track.album),
+                          trailing: Text(track.durationLabel),
+                          onTap: () {
+                            context.read<PlayerCubit>().playTrack(
+                              track,
+                              queue: artistTracks,
+                            );
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const NowPlayingScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
-                  ),
-                ),
               ],
             ],
           ),
@@ -177,5 +216,36 @@ class ArtistDetailScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _buildArtistMetadata({
+    required int albumCount,
+    required int trackCount,
+    required int totalSeconds,
+  }) {
+    return [
+      '$albumCount álbumes',
+      '$trackCount canciones',
+      _formatDurationLabel(totalSeconds),
+    ].join(' • ');
+  }
+
+  String _formatDurationLabel(int totalSeconds) {
+    if (totalSeconds <= 0) {
+      return '0m';
+    }
+
+    final hours = totalSeconds ~/ 3600;
+    final minutes = (totalSeconds % 3600) ~/ 60;
+
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    }
+
+    if (minutes > 0) {
+      return '${minutes}m';
+    }
+
+    return '1m';
   }
 }
