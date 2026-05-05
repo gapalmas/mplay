@@ -136,6 +136,11 @@ class MusicScanner {
       'voicerecorder',
       'voice recorder',
       'voice_recorder',
+      // Generic "recording/call" and "recordings/call" folder layouts
+      '/recording/call/',
+      '/recording/calls/',
+      '/recordings/call/',
+      '/recordings/calls/',
       // Android system notifications and ringtones (not music)
       '/notifications/',
       '/ringtones/',
