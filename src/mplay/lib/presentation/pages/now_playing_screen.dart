@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:on_audio_query/on_audio_query.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 import '../../domain/entities/demo_models.dart';
 import '../blocs/library/library_cubit.dart';
@@ -20,6 +22,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     with TickerProviderStateMixin {
   late final TabController _tabController;
   late double _position;
+  Color? _dominantColor;
+  String _lastTrackId = '';
 
   @override
   void initState() {
@@ -34,6 +38,65 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     super.dispose();
   }
 
+  Future<void> _updateDominantColor(DemoTrack track) async {
+    final trackId = '${track.songId ?? '${track.title}${track.artist}'}';
+
+    if (trackId == _lastTrackId && _dominantColor != null) {
+      return;
+    }
+    _lastTrackId = trackId;
+
+    try {
+      if (track.songId != null && track.songId! > 0) {
+        // Obtener la imagen del archivo local
+        final onAudioQuery = OnAudioQuery();
+        final artworkBytes = await onAudioQuery.queryArtwork(
+          track.songId!,
+          ArtworkType.AUDIO,
+        );
+
+        if (artworkBytes != null && mounted) {
+          final imageProvider = MemoryImage(artworkBytes);
+          final paletteGenerator = await PaletteGenerator.fromImageProvider(
+            imageProvider,
+            size: const Size(200, 200),
+          );
+
+          final dominantColor =
+              paletteGenerator.dominantColor?.color ??
+              paletteGenerator.vibrantColor?.color ??
+              paletteGenerator.mutedColor?.color ??
+              Theme.of(context).colorScheme.surface;
+
+          if (mounted) {
+            setState(() {
+              _dominantColor = dominantColor;
+            });
+          }
+          return;
+        }
+      }
+
+      // Fallback si no hay songId o artwork
+      if (mounted) {
+        setState(() {
+          _dominantColor = Theme.of(context).colorScheme.surface;
+        });
+      }
+    } catch (e) {
+      // Fallback seguro
+      if (mounted) {
+        setState(() {
+          _dominantColor = Theme.of(context).colorScheme.surface;
+        });
+      }
+    }
+  }
+
+  bool _isColorLight(Color color) {
+    return color.computeLuminance() > 0.5;
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PlayerCubit, PlayerState>(
@@ -45,11 +108,29 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
           );
         }
         final track = state.currentTrack!;
+
+        // Usa microtask para actualizar el color después del build
+        Future.microtask(() => _updateDominantColor(track));
+
         final maxPosition = state.maxPositionSeconds;
         _position = state.positionSeconds;
         final primaryColor = Theme.of(context).colorScheme.primary;
+
+        final backgroundColor =
+            _dominantColor ?? Theme.of(context).colorScheme.surface;
+        final isLight = _isColorLight(backgroundColor);
+        final textColor = isLight ? Colors.black87 : Colors.white;
+        final accentColor = isLight
+            ? Colors.black.withValues(alpha: 0.6)
+            : Colors.white.withValues(alpha: 0.7);
+
         return Scaffold(
-          appBar: AppBar(title: const Text('Now Playing')),
+          appBar: AppBar(
+            title: const Text('Now Playing'),
+            backgroundColor: backgroundColor.withValues(alpha: 0.85),
+            foregroundColor: textColor,
+          ),
+          backgroundColor: backgroundColor,
           body: SafeArea(
             child: Column(
               children: [
@@ -58,19 +139,33 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        AspectRatio(
-                          aspectRatio: 1,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
-                            child: TrackArtwork(
-                              track: track,
-                              size: (MediaQuery.sizeOf(context).width - 40)
-                                  .clamp(120.0, 420.0)
-                                  .toDouble(),
-                              radius: 24,
-                              iconSize: 120,
-                              querySize: 1400,
-                              artworkFilterQuality: FilterQuality.high,
+                        GestureDetector(
+                          onHorizontalDragEnd: (details) {
+                            const minSwipeDistance = 50.0;
+                            if (details.velocity.pixelsPerSecond.dx <
+                                -minSwipeDistance) {
+                              // Swipe left -> next track
+                              context.read<PlayerCubit>().skipNext();
+                            } else if (details.velocity.pixelsPerSecond.dx >
+                                minSwipeDistance) {
+                              // Swipe right -> previous track
+                              context.read<PlayerCubit>().skipPrevious();
+                            }
+                          },
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: TrackArtwork(
+                                track: track,
+                                size: (MediaQuery.sizeOf(context).width - 40)
+                                    .clamp(120.0, 420.0)
+                                    .toDouble(),
+                                radius: 24,
+                                iconSize: 120,
+                                querySize: 1400,
+                                artworkFilterQuality: FilterQuality.high,
+                              ),
                             ),
                           ),
                         ),
@@ -79,7 +174,9 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                           width: double.infinity,
                           child: MarqueeText(
                             text: track.nowPlayingTickerLabel,
-                            style: Theme.of(context).textTheme.titleMedium,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(color: textColor),
                             textAlign: TextAlign.center,
                             gap: 56,
                             velocity: 34,
@@ -91,7 +188,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                           children: [
                             IconButton(
                               onPressed: () {},
-                              icon: const Icon(Icons.favorite_border_rounded),
+                              icon: Icon(
+                                Icons.favorite_border_rounded,
+                                color: textColor,
+                              ),
                             ),
                             PopupMenuButton<_NowPlayingMenuAction>(
                               onSelected: (action) {
@@ -110,25 +210,44 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                                   ),
                                 ),
                               ],
-                              icon: const Icon(Icons.more_vert_rounded),
+                              icon: Icon(
+                                Icons.more_vert_rounded,
+                                color: textColor,
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Slider(
-                          value: _position.clamp(0, maxPosition),
-                          max: maxPosition,
-                          onChanged: (value) {
-                            context.read<PlayerCubit>().seek(value);
-                          },
+                        SliderTheme(
+                          data: SliderThemeData(
+                            activeTrackColor: primaryColor,
+                            inactiveTrackColor: accentColor.withValues(
+                              alpha: 0.3,
+                            ),
+                            thumbColor: primaryColor,
+                            overlayColor: primaryColor.withValues(alpha: 0.2),
+                          ),
+                          child: Slider(
+                            value: _position.clamp(0, maxPosition),
+                            max: maxPosition,
+                            onChanged: (value) {
+                              context.read<PlayerCubit>().seek(value);
+                            },
+                          ),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(_secondsToLabel(_position)),
-                              Text(track.durationLabel),
+                              Text(
+                                _secondsToLabel(_position),
+                                style: TextStyle(color: textColor),
+                              ),
+                              Text(
+                                track.durationLabel,
+                                style: TextStyle(color: textColor),
+                              ),
                             ],
                           ),
                         ),
@@ -143,7 +262,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                               icon: const Icon(Icons.shuffle_rounded),
                               color: state.isShuffleEnabled
                                   ? primaryColor
-                                  : null,
+                                  : accentColor,
                               tooltip: state.isShuffleEnabled
                                   ? 'Aleatorio activado'
                                   : 'Aleatorio desactivado',
@@ -152,7 +271,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                               onPressed: context
                                   .read<PlayerCubit>()
                                   .skipPrevious,
-                              icon: const Icon(Icons.skip_previous_rounded),
+                              icon: Icon(
+                                Icons.skip_previous_rounded,
+                                color: textColor,
+                              ),
                             ),
                             FilledButton.tonalIcon(
                               onPressed: context
@@ -162,12 +284,22 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                                 state.isPlaying
                                     ? Icons.pause_rounded
                                     : Icons.play_arrow_rounded,
+                                color: textColor,
                               ),
-                              label: Text(state.isPlaying ? 'Pause' : 'Play'),
+                              label: Text(
+                                state.isPlaying ? 'Pause' : 'Play',
+                                style: TextStyle(color: textColor),
+                              ),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: primaryColor,
+                              ),
                             ),
                             IconButton(
                               onPressed: context.read<PlayerCubit>().skipNext,
-                              icon: const Icon(Icons.skip_next_rounded),
+                              icon: Icon(
+                                Icons.skip_next_rounded,
+                                color: textColor,
+                              ),
                             ),
                             IconButton(
                               onPressed: context
@@ -181,7 +313,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                               color:
                                   state.repeatMode ==
                                       player_state.RepeatMode.off
-                                  ? null
+                                  ? accentColor
                                   : primaryColor,
                               tooltip: switch (state.repeatMode) {
                                 player_state.RepeatMode.off =>
@@ -196,22 +328,44 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.volume_down_rounded),
+                            Icon(Icons.volume_down_rounded, color: textColor),
                             Expanded(
-                              child: Slider(
-                                value: state.volume.clamp(0.0, 1.0),
-                                max: 1,
-                                onChanged: (value) {
-                                  context.read<PlayerCubit>().setVolume(value);
-                                },
+                              child: SliderTheme(
+                                data: SliderThemeData(
+                                  activeTrackColor: primaryColor,
+                                  inactiveTrackColor: accentColor.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  thumbColor: primaryColor,
+                                  overlayColor: primaryColor.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                ),
+                                child: Slider(
+                                  value: state.volume.clamp(0.0, 1.0),
+                                  max: 1,
+                                  onChanged: (value) {
+                                    context.read<PlayerCubit>().setVolume(
+                                      value,
+                                    );
+                                  },
+                                ),
                               ),
                             ),
-                            Text('${(state.volume * 100).round()}%'),
+                            Text(
+                              '${(state.volume * 100).round()}%',
+                              style: TextStyle(color: textColor),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
                         TabBar(
                           controller: _tabController,
+                          labelColor: textColor,
+                          unselectedLabelColor: accentColor.withValues(
+                            alpha: 0.7,
+                          ),
+                          indicatorColor: primaryColor,
                           tabs: const [
                             Tab(text: 'Letras'),
                             Tab(text: 'Cola'),
@@ -223,17 +377,24 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                             controller: _tabController,
                             children: [
                               ListView(
-                                children: const [
+                                children: [
                                   ListTile(
-                                    title: Text('Is this the real life?'),
+                                    title: Text(
+                                      'Is this the real life?',
+                                      style: TextStyle(color: textColor),
+                                    ),
                                   ),
                                   ListTile(
-                                    title: Text('Is this just fantasy?'),
+                                    title: Text(
+                                      'Is this just fantasy?',
+                                      style: TextStyle(color: textColor),
+                                    ),
                                   ),
                                   ListTile(
                                     title: Text(
                                       'Caught in a landslide',
                                       style: TextStyle(
+                                        color: textColor,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -242,11 +403,17 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                                     title: Text(
                                       'No escape from reality.',
                                       style: TextStyle(
+                                        color: textColor,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
-                                  ListTile(title: Text('Open your eyes...')),
+                                  ListTile(
+                                    title: Text(
+                                      'Open your eyes...',
+                                      style: TextStyle(color: textColor),
+                                    ),
+                                  ),
                                 ],
                               ),
                               ListView.builder(
@@ -255,11 +422,23 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                                   final item = state.queue[index];
                                   return ListTile(
                                     leading: CircleAvatar(
-                                      child: Text('${index + 1}'),
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: TextStyle(color: textColor),
+                                      ),
                                     ),
-                                    title: Text(item.title),
-                                    subtitle: Text(item.artist),
-                                    trailing: Text(item.durationLabel),
+                                    title: Text(
+                                      item.title,
+                                      style: TextStyle(color: textColor),
+                                    ),
+                                    subtitle: Text(
+                                      item.artist,
+                                      style: TextStyle(color: accentColor),
+                                    ),
+                                    trailing: Text(
+                                      item.durationLabel,
+                                      style: TextStyle(color: textColor),
+                                    ),
                                   );
                                 },
                               ),
