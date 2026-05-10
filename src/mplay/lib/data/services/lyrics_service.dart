@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../domain/entities/demo_models.dart';
 
@@ -90,24 +91,18 @@ class LyricsPayload {
 
 class LyricsService {
   static const _baseUrl = 'https://lrclib.net';
-  static const _boxName = 'lyrics_cache';
-  static const _schemaKey = 'schema_version';
-  static const _schemaVersion = 1;
 
-  Box? _box;
+  Directory? _lyricsDir;
   final Map<String, Future<LyricsPayload?>> _inFlight = {};
 
   Future<void> _ensureInitialized() async {
-    if (_box != null && _box!.isOpen) return;
-
-    await Hive.initFlutter();
-    _box = await Hive.openBox(_boxName);
-
-    final schema = _box!.get(_schemaKey) as int?;
-    if (schema != _schemaVersion) {
-      await _box!.clear();
-      await _box!.put(_schemaKey, _schemaVersion);
+    if (_lyricsDir != null) return;
+    final docsDir = await getApplicationDocumentsDirectory();
+    final dir = Directory('${docsDir.path}/lyrics');
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
     }
+    _lyricsDir = dir;
   }
 
   Future<LyricsPayload?> fetchLyricsForTrack(
@@ -118,7 +113,7 @@ class LyricsService {
 
     final key = _cacheKey(track);
     if (!forceRefresh) {
-      final cached = _readCache(key);
+      final cached = await _readCacheFromFile(key);
       if (cached != null) {
         return cached;
       }
@@ -129,7 +124,7 @@ class LyricsService {
       return running;
     }
 
-    final future = _fetchAndCache(track, key);
+    final future = _fetchAndPersist(track, key);
     _inFlight[key] = future;
 
     try {
@@ -139,13 +134,17 @@ class LyricsService {
     }
   }
 
-  LyricsPayload? _readCache(String key) {
-    final raw = _box?.get(key) as String?;
-    if (raw == null || raw.isEmpty) {
+  Future<LyricsPayload?> _readCacheFromFile(String key) async {
+    final file = _jsonFileForKey(key);
+    if (!await file.exists()) {
       return null;
     }
 
     try {
+      final raw = await file.readAsString();
+      if (raw.isEmpty) {
+        return null;
+      }
       final json = jsonDecode(raw) as Map<String, dynamic>;
       return LyricsPayload.fromJson(json);
     } catch (_) {
@@ -153,12 +152,24 @@ class LyricsService {
     }
   }
 
-  Future<LyricsPayload?> _fetchAndCache(DemoTrack track, String key) async {
+  Future<LyricsPayload?> _fetchAndPersist(DemoTrack track, String key) async {
     final payload = await _fetchFromApi(track);
     if (payload != null) {
-      await _box?.put(key, jsonEncode(payload.toJson()));
+      await _writeCacheFiles(key, payload);
     }
     return payload;
+  }
+
+  Future<void> _writeCacheFiles(String key, LyricsPayload payload) async {
+    final jsonFile = _jsonFileForKey(key);
+    await jsonFile.writeAsString(jsonEncode(payload.toJson()), flush: true);
+
+    final lrcFile = _lrcFileForKey(key);
+    if (payload.syncedLyrics.trim().isNotEmpty) {
+      await lrcFile.writeAsString(payload.syncedLyrics, flush: true);
+    } else if (await lrcFile.exists()) {
+      await lrcFile.delete();
+    }
   }
 
   Future<LyricsPayload?> _fetchFromApi(DemoTrack track) async {
@@ -382,6 +393,40 @@ class LyricsService {
     final album = _normalize(track.album);
     final duration = track.durationSeconds;
     return 'lyrics:$title|$artist|$album|$duration';
+  }
+
+  File _jsonFileForKey(String key) {
+    final dirPath = _lyricsDir?.path;
+    if (dirPath == null) {
+      throw StateError('LyricsService is not initialized');
+    }
+    return File('$dirPath/${_safeFileName(key)}.json');
+  }
+
+  File _lrcFileForKey(String key) {
+    final dirPath = _lyricsDir?.path;
+    if (dirPath == null) {
+      throw StateError('LyricsService is not initialized');
+    }
+    return File('$dirPath/${_safeFileName(key)}.lrc');
+  }
+
+  String _safeFileName(String key) {
+    final normalized = key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+    final compact = normalized
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+    final short = compact.substring(0, min(compact.length, 80));
+    return '${_stableHash(key).toRadixString(16)}_$short';
+  }
+
+  int _stableHash(String value) {
+    var hash = 0x811c9dc5;
+    for (final codeUnit in value.codeUnits) {
+      hash ^= codeUnit;
+      hash = (hash * 0x01000193) & 0xffffffff;
+    }
+    return hash;
   }
 
   String _normalize(String value) {
