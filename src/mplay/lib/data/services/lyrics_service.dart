@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../domain/entities/demo_models.dart';
@@ -91,14 +92,28 @@ class LyricsPayload {
 
 class LyricsService {
   static const _baseUrl = 'https://lrclib.net';
+  static const _lyricsStorageChannel = MethodChannel('mplay/lyrics_storage');
 
   Directory? _lyricsDir;
   final Map<String, Future<LyricsPayload?>> _inFlight = {};
 
   Future<void> _ensureInitialized() async {
     if (_lyricsDir != null) return;
-    final docsDir = await getApplicationDocumentsDirectory();
-    final dir = Directory('${docsDir.path}/lyrics');
+
+    Directory? baseDir;
+    try {
+      final externalDocs = await getExternalStorageDirectories(
+        type: StorageDirectory.documents,
+      );
+      if (externalDocs != null && externalDocs.isNotEmpty) {
+        baseDir = externalDocs.first;
+      }
+    } catch (_) {
+      baseDir = null;
+    }
+
+    baseDir ??= await getApplicationDocumentsDirectory();
+    final dir = Directory('${baseDir.path}/lyrics');
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
@@ -135,6 +150,16 @@ class LyricsService {
   }
 
   Future<LyricsPayload?> _readCacheFromFile(String key) async {
+    final rawFromPublic = await _readPublicJsonOnAndroid(key);
+    if (rawFromPublic != null && rawFromPublic.isNotEmpty) {
+      try {
+        final json = jsonDecode(rawFromPublic) as Map<String, dynamic>;
+        return LyricsPayload.fromJson(json);
+      } catch (_) {
+        // fallback al almacenamiento interno
+      }
+    }
+
     final file = _jsonFileForKey(key);
     if (!await file.exists()) {
       return null;
@@ -161,6 +186,8 @@ class LyricsService {
   }
 
   Future<void> _writeCacheFiles(String key, LyricsPayload payload) async {
+    await _writePublicFilesOnAndroid(key, payload);
+
     final jsonFile = _jsonFileForKey(key);
     await jsonFile.writeAsString(jsonEncode(payload.toJson()), flush: true);
 
@@ -431,5 +458,41 @@ class LyricsService {
 
   String _normalize(String value) {
     return value.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  Future<String?> _readPublicJsonOnAndroid(String key) async {
+    if (!Platform.isAndroid) {
+      return null;
+    }
+
+    try {
+      return await _lyricsStorageChannel.invokeMethod<String>(
+        'readLyricsJson',
+        {'baseName': _safeFileName(key)},
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _writePublicFilesOnAndroid(
+    String key,
+    LyricsPayload payload,
+  ) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+
+    try {
+      await _lyricsStorageChannel.invokeMethod<bool>('writeLyricsFiles', {
+        'baseName': _safeFileName(key),
+        'jsonContent': jsonEncode(payload.toJson()),
+        'lrcContent': payload.syncedLyrics.trim().isEmpty
+            ? null
+            : payload.syncedLyrics,
+      });
+    } catch (_) {
+      // fallback silencioso al almacenamiento interno
+    }
   }
 }
