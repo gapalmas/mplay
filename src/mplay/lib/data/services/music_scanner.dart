@@ -13,23 +13,29 @@ class MusicScanner {
 
   /// Request and check storage permissions
   Future<bool> requestPermissions() async {
-    final audioQueryPerm = await _audioQuery.permissionsRequest();
-
     if (!Platform.isAndroid) {
-      return audioQueryPerm;
+      return _audioQuery.permissionsRequest();
     }
 
     final audioStatus = await Permission.audio.request();
-    final imagesStatus = await Permission.photos.request();
-
     final audioGranted = audioStatus.isGranted || audioStatus.isLimited;
+
+    final imagesStatus = await Permission.photos.request();
     final imagesGranted = imagesStatus.isGranted || imagesStatus.isLimited;
 
-    return audioQueryPerm && audioGranted && imagesGranted;
+    return audioGranted && imagesGranted;
   }
 
   Future<bool> hasPermissions() async {
-    return _audioQuery.permissionsStatus();
+    if (!Platform.isAndroid) {
+      return _audioQuery.permissionsStatus();
+    }
+
+    final audioStatus = await Permission.audio.status;
+    final imagesStatus = await Permission.photos.status;
+    final audioGranted = audioStatus.isGranted || audioStatus.isLimited;
+    final imagesGranted = imagesStatus.isGranted || imagesStatus.isLimited;
+    return audioGranted && imagesGranted;
   }
 
   /// Scan device for all music tracks, returns list of [DemoTrack]

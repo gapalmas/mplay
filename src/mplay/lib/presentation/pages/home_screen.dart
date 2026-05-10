@@ -179,170 +179,187 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           body: TabBarView(
             controller: _libraryTabs,
             children: [
-              ListView.builder(
-                itemCount: tracks.length,
-                itemBuilder: (context, index) {
-                  final track = tracks[index];
-                  return Card(
-                    child: ListTile(
-                      leading: TrackArtwork(
-                        track: track,
-                        size: 40,
-                        radius: 20,
-                        iconSize: 20,
-                      ),
-                      title: Text(track.title),
-                      subtitle: Text(track.artist),
-                      trailing: Text(track.durationLabel),
-                      onTap: () {
-                        context.read<PlayerCubit>().playTrack(
-                          track,
-                          queue: tracks,
-                        );
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const NowPlayingScreen(),
-                          ),
-                        );
-                      },
-                      onLongPress: () {
-                        _showAddToPlaylistSheet(
-                          context: context,
+              RefreshIndicator(
+                onRefresh: () => context.read<LibraryCubit>().refreshLibrary(),
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: tracks.length,
+                  itemBuilder: (context, index) {
+                    final track = tracks[index];
+                    return Card(
+                      child: ListTile(
+                        leading: TrackArtwork(
                           track: track,
-                          playlists: playlists,
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-              GridView.builder(
-                padding: const EdgeInsets.all(12),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.95,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+                          size: 40,
+                          radius: 20,
+                          iconSize: 20,
+                        ),
+                        title: Text(track.title),
+                        subtitle: Text(track.artist),
+                        trailing: Text(track.durationLabel),
+                        onTap: () {
+                          context.read<PlayerCubit>().playTrack(
+                            track,
+                            queue: tracks,
+                          );
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const NowPlayingScreen(),
+                            ),
+                          );
+                        },
+                        onLongPress: () {
+                          _showAddToPlaylistSheet(
+                            context: context,
+                            track: track,
+                            playlists: playlists,
+                          );
+                        },
+                      ),
+                    );
+                  },
                 ),
-                itemCount: albums.length,
-                itemBuilder: (context, index) {
-                  final album = albums[index];
-                  return Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => AlbumDetailScreen(album: album),
-                          ),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Center(
-                                child: SizedBox.square(
-                                  dimension: 120,
-                                  child: TrackArtwork(
-                                    track: album.tracks.first,
-                                    size: 120,
-                                    radius: 6,
-                                    iconSize: 44,
-                                    showBackground: true,
+              ),
+              RefreshIndicator(
+                onRefresh: () => context.read<LibraryCubit>().refreshLibrary(),
+                child: GridView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(12),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.95,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: albums.length,
+                  itemBuilder: (context, index) {
+                    final album = albums[index];
+                    return Card(
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => AlbumDetailScreen(album: album),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Center(
+                                  child: SizedBox.square(
+                                    dimension: 120,
+                                    child: TrackArtwork(
+                                      track: album.tracks.first,
+                                      size: 120,
+                                      radius: 6,
+                                      iconSize: 44,
+                                      showBackground: true,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              album.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            Text(
-                              album.artist,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                album.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              Text(
+                                album.artist,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-              ListView.builder(
-                itemCount: artists.length,
-                itemBuilder: (context, index) {
-                  final artist = artists[index];
-                  DemoTrack? artistPreviewTrack;
-                  for (final track in tracks) {
-                    if (track.artist == artist.name) {
-                      artistPreviewTrack = track;
-                      break;
+              RefreshIndicator(
+                onRefresh: () => context.read<LibraryCubit>().refreshLibrary(),
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: artists.length,
+                  itemBuilder: (context, index) {
+                    final artist = artists[index];
+                    DemoTrack? artistPreviewTrack;
+                    for (final track in tracks) {
+                      if (track.artist == artist.name) {
+                        artistPreviewTrack = track;
+                        break;
+                      }
                     }
-                  }
-                  return Card(
-                    child: ListTile(
-                      leading: artistPreviewTrack != null
-                          ? TrackArtwork(
-                              track: artistPreviewTrack,
-                              size: 40,
-                              radius: 20,
-                              iconSize: 20,
-                            )
-                          : const CircleAvatar(
-                              child: Icon(Icons.person_rounded),
+                    return Card(
+                      child: ListTile(
+                        leading: artistPreviewTrack != null
+                            ? TrackArtwork(
+                                track: artistPreviewTrack,
+                                size: 40,
+                                radius: 20,
+                                iconSize: 20,
+                              )
+                            : const CircleAvatar(
+                                child: Icon(Icons.person_rounded),
+                              ),
+                        title: Text(artist.name),
+                        subtitle: Text(
+                          '${artist.albums} álbumes • ${artist.tracks} canciones',
+                        ),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ArtistDetailScreen(artist: artist),
                             ),
-                      title: Text(artist.name),
-                      subtitle: Text(
-                        '${artist.albums} álbumes • ${artist.tracks} canciones',
+                          );
+                        },
                       ),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ArtistDetailScreen(artist: artist),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-              ListView.builder(
-                itemCount: playlists.length,
-                itemBuilder: (context, index) {
-                  final playlist = playlists[index];
-                  final playlistPreviewTrack = playlist.tracks.isNotEmpty
-                      ? playlist.tracks.first
-                      : null;
-                  return Card(
-                    child: ListTile(
-                      leading: playlistPreviewTrack != null
-                          ? TrackArtwork(
-                              track: playlistPreviewTrack,
-                              size: 40,
-                              radius: 20,
-                              iconSize: 20,
-                            )
-                          : const CircleAvatar(
-                              child: Icon(Icons.queue_music_rounded),
+              RefreshIndicator(
+                onRefresh: () => context.read<LibraryCubit>().refreshLibrary(),
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: playlists.length,
+                  itemBuilder: (context, index) {
+                    final playlist = playlists[index];
+                    final playlistPreviewTrack = playlist.tracks.isNotEmpty
+                        ? playlist.tracks.first
+                        : null;
+                    return Card(
+                      child: ListTile(
+                        leading: playlistPreviewTrack != null
+                            ? TrackArtwork(
+                                track: playlistPreviewTrack,
+                                size: 40,
+                                radius: 20,
+                                iconSize: 20,
+                              )
+                            : const CircleAvatar(
+                                child: Icon(Icons.queue_music_rounded),
+                              ),
+                        title: Text(playlist.name),
+                        subtitle: Text('${playlist.trackCount} canciones'),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const PlaylistsScreen(),
                             ),
-                      title: Text(playlist.name),
-                      subtitle: Text('${playlist.trackCount} canciones'),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const PlaylistsScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           ),

@@ -5,9 +5,7 @@ import '../../domain/entities/demo_models.dart';
 /// Loads the music library: returns cached tracks if valid,
 /// otherwise scans the device and caches the result.
 class LibraryRepository {
-  LibraryRepository()
-      : _scanner = MusicScanner(),
-        _cache = MusicCacheService();
+  LibraryRepository() : _scanner = MusicScanner(), _cache = MusicCacheService();
 
   final MusicScanner _scanner;
   final MusicCacheService _cache;
@@ -18,10 +16,13 @@ class LibraryRepository {
 
   /// Returns all tracks. Uses cache if fresh, else scans device.
   Future<List<DemoTrack>> getAllTracks({bool forceRefresh = false}) async {
+    final cached = _cache.getCachedTracks();
+
     if (!forceRefresh) {
-      final cached = _cache.getCachedTracks();
       if (cached != null) {
-        print('LibraryRepository: returning ${cached.length} tracks from cache');
+        print(
+          'LibraryRepository: returning ${cached.length} tracks from cache',
+        );
         return cached;
       }
     }
@@ -29,11 +30,42 @@ class LibraryRepository {
     print('LibraryRepository: scanning device music...');
     final tracks = await _scanner.scanTracks();
 
-    if (tracks.isNotEmpty) {
+    final hasChanges = _hasLibraryChanges(cached, tracks);
+    if (tracks.isNotEmpty && (forceRefresh || hasChanges || cached == null)) {
       await _cache.cacheTracks(tracks);
+    } else if (!hasChanges && cached != null) {
+      print('LibraryRepository: no changes detected, keeping cached library');
+      return cached;
     }
 
     return tracks;
+  }
+
+  bool _hasLibraryChanges(
+    List<DemoTrack>? oldTracks,
+    List<DemoTrack> newTracks,
+  ) {
+    if (oldTracks == null) return true;
+    if (oldTracks.length != newTracks.length) return true;
+
+    final oldKeys = oldTracks.map(_trackIdentityKey).toSet();
+    final newKeys = newTracks.map(_trackIdentityKey).toSet();
+    if (oldKeys.length != newKeys.length) return true;
+
+    for (final key in oldKeys) {
+      if (!newKeys.contains(key)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  String _trackIdentityKey(DemoTrack track) {
+    final songId = track.songId ?? 0;
+    final path = (track.filePath ?? '').toLowerCase();
+    final duration = track.durationSeconds;
+    return '$songId|$path|$duration';
   }
 
   /// Groups tracks by album name and returns list of [DemoAlbum]
@@ -51,7 +83,9 @@ class LibraryRepository {
       final secs = totalSec % 60;
 
       final folderName = _folderNameFromPath(e.key);
-      final albumName = folderName?.isNotEmpty == true ? folderName! : albumTracks.first.album;
+      final albumName = folderName?.isNotEmpty == true
+          ? folderName!
+          : albumTracks.first.album;
 
       return DemoAlbum(
         name: albumName,
@@ -60,8 +94,7 @@ class LibraryRepository {
         totalDuration: '$mins:${secs.toString().padLeft(2, '0')}',
         tracks: albumTracks,
       );
-    }).toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    }).toList()..sort((a, b) => a.name.compareTo(b.name));
   }
 
   /// Groups tracks by artist name and returns list of [DemoArtist]
@@ -79,8 +112,7 @@ class LibraryRepository {
         albums: albumCount,
         tracks: artistTracks.length,
       );
-    }).toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    }).toList()..sort((a, b) => a.name.compareTo(b.name));
   }
 
   Future<void> clearCache() async {
