@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:palette_generator/palette_generator.dart';
 
+import '../../data/services/lyrics_service.dart';
 import '../../domain/entities/demo_models.dart';
 import '../blocs/library/library_cubit.dart';
 import '../blocs/player/player_cubit.dart';
@@ -22,18 +23,30 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     with TickerProviderStateMixin {
   late final TabController _tabController;
   late double _position;
+  final LyricsService _lyricsService = LyricsService();
+  final ScrollController _lyricsScrollController = ScrollController();
+  final ScrollController _mainScrollController = ScrollController();
+  final Map<String, Future<LyricsPayload?>> _lyricsFutureCache = {};
   Color? _dominantColor;
   String _lastTrackId = '';
+  String _lastLyricsTrackKey = '';
+  int _lastLyricsIndex = -1;
+
+  static const double _lyricsItemExtent = 62;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _position = 0;
   }
 
   @override
   void dispose() {
+    _lyricsScrollController.dispose();
+    _mainScrollController.dispose();
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -97,6 +110,35 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     return color.computeLuminance() > 0.5;
   }
 
+  void _scrollToTabsContent() {
+    if (!_mainScrollController.hasClients) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_mainScrollController.hasClients) {
+        return;
+      }
+      _mainScrollController.animateTo(
+        _mainScrollController.position.maxScrollExtent * 1.25,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  void _onTabChanged() {
+    // Cambio de tab por swipe o por toque en tab diferente
+    if (_tabController.indexIsChanging) {
+      _scrollToTabsContent();
+    }
+
+    // Cuando se selecciona tab Letras, resetear índice para sincronizar scroll
+    if (_tabController.index == 0 && _tabController.indexIsChanging) {
+      _lastLyricsIndex = -1;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<PlayerCubit, PlayerState>(
@@ -136,6 +178,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
               children: [
                 Expanded(
                   child: SingleChildScrollView(
+                    controller: _mainScrollController,
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
@@ -361,6 +404,13 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                         const SizedBox(height: 16),
                         TabBar(
                           controller: _tabController,
+                          onTap: (index) {
+                            // Soporta re-tap del tab ya activo (por ejemplo, Letras)
+                            _scrollToTabsContent();
+                            if (index == 0) {
+                              _lastLyricsIndex = -1;
+                            }
+                          },
                           labelColor: textColor,
                           unselectedLabelColor: accentColor.withValues(
                             alpha: 0.7,
@@ -376,45 +426,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                           child: TabBarView(
                             controller: _tabController,
                             children: [
-                              ListView(
-                                children: [
-                                  ListTile(
-                                    title: Text(
-                                      'Is this the real life?',
-                                      style: TextStyle(color: textColor),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: Text(
-                                      'Is this just fantasy?',
-                                      style: TextStyle(color: textColor),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: Text(
-                                      'Caught in a landslide',
-                                      style: TextStyle(
-                                        color: textColor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: Text(
-                                      'No escape from reality.',
-                                      style: TextStyle(
-                                        color: textColor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: Text(
-                                      'Open your eyes...',
-                                      style: TextStyle(color: textColor),
-                                    ),
-                                  ),
-                                ],
+                              _buildLyricsTab(
+                                track: track,
+                                textColor: textColor,
+                                accentColor: accentColor,
                               ),
                               ListView.builder(
                                 itemCount: state.queue.length,
@@ -462,6 +477,191 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
     final mins = total ~/ 60;
     final secs = total % 60;
     return '$mins:${secs.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildLyricsTab({
+    required DemoTrack track,
+    required Color textColor,
+    required Color accentColor,
+  }) {
+    final lyricsKey = _lyricsTrackKey(track);
+    final future = _lyricsFutureForTrack(track);
+
+    return FutureBuilder<LyricsPayload?>(
+      future: future,
+      builder: (context, snapshot) {
+        return Column(
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                tooltip: 'Actualizar letras',
+                icon: Icon(Icons.refresh_rounded, color: textColor),
+                onPressed: () {
+                  setState(() {
+                    _lastLyricsIndex = -1;
+                    _lyricsFutureCache[lyricsKey] = _lyricsService
+                        .fetchLyricsForTrack(track, forceRefresh: true);
+                  });
+                },
+              ),
+            ),
+            Expanded(
+              child: _buildLyricsTabBody(
+                snapshot: snapshot,
+                textColor: textColor,
+                accentColor: accentColor,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLyricsTabBody({
+    required AsyncSnapshot<LyricsPayload?> snapshot,
+    required Color textColor,
+    required Color accentColor,
+  }) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final payload = snapshot.data;
+    if (payload == null) {
+      return Center(
+        child: Text(
+          'No se encontraron letras para esta canción',
+          style: TextStyle(color: textColor),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    if (payload.instrumental) {
+      return Center(
+        child: Text(
+          'Esta pista es instrumental',
+          style: TextStyle(color: textColor),
+        ),
+      );
+    }
+
+    if (payload.hasSynced) {
+      final currentIndex = payload.lineIndexAt(
+        Duration(milliseconds: (_position * 1000).round()),
+      );
+
+      _syncLyricsAutoScroll(currentIndex);
+
+      return ListView.builder(
+        controller: _lyricsScrollController,
+        itemExtent: _lyricsItemExtent,
+        itemCount: payload.lines.length,
+        itemBuilder: (context, index) {
+          final line = payload.lines[index];
+          final isActive = index == currentIndex;
+
+          return ListTile(
+            dense: true,
+            title: Text(
+              line.text.isEmpty ? '♪' : line.text,
+              style: TextStyle(
+                color: isActive
+                    ? Theme.of(context).colorScheme.primary
+                    : textColor,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+              ),
+            ),
+            subtitle: Text(
+              _secondsToLabel(line.time.inMilliseconds / 1000),
+              style: TextStyle(color: accentColor),
+            ),
+          );
+        },
+      );
+    }
+
+    final plainLines = payload.plainLyrics
+        .split('\n')
+        .where((line) => line.trim().isNotEmpty)
+        .toList();
+
+    if (plainLines.isEmpty) {
+      return Center(
+        child: Text(
+          'No hay letras disponibles',
+          style: TextStyle(color: textColor),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: plainLines.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          dense: true,
+          title: Text(plainLines[index], style: TextStyle(color: textColor)),
+        );
+      },
+    );
+  }
+
+  void _syncLyricsAutoScroll(int currentIndex) {
+    if (currentIndex < 0 || currentIndex == _lastLyricsIndex) {
+      return;
+    }
+    _lastLyricsIndex = currentIndex;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_lyricsScrollController.hasClients) {
+        return;
+      }
+
+      final position = _lyricsScrollController.position;
+      final viewport = position.viewportDimension;
+      final target =
+          (currentIndex * _lyricsItemExtent) -
+          (viewport / 2) +
+          (_lyricsItemExtent / 2);
+
+      final clamped = target.clamp(0.0, position.maxScrollExtent).toDouble();
+      _lyricsScrollController.animateTo(
+        clamped,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  Future<LyricsPayload?> _lyricsFutureForTrack(
+    DemoTrack track, {
+    bool forceRefresh = false,
+  }) {
+    final key = _lyricsTrackKey(track);
+
+    final isTrackChanged = key != _lastLyricsTrackKey;
+    if (isTrackChanged) {
+      _lastLyricsTrackKey = key;
+      _lastLyricsIndex = -1;
+      if (_lyricsScrollController.hasClients) {
+        _lyricsScrollController.jumpTo(0);
+      }
+    }
+
+    if (forceRefresh || !_lyricsFutureCache.containsKey(key)) {
+      _lyricsFutureCache[key] = _lyricsService.fetchLyricsForTrack(
+        track,
+        forceRefresh: forceRefresh,
+      );
+    }
+
+    return _lyricsFutureCache[key]!;
+  }
+
+  String _lyricsTrackKey(DemoTrack track) {
+    return '${track.songId ?? 0}|${track.title}|${track.artist}|${track.album}|${track.durationSeconds}';
   }
 
   Future<void> _showAddToPlaylistMenu(
